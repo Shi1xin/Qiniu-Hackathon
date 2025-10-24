@@ -1,58 +1,77 @@
 # Implementation Plan: CLI Navigation Tool
 
-**Branch**: `001-cli-nav-tool` | **Date**: 2025-01-24 | **Spec**: [CLI Navigation Tool](spec.md)
+**Branch**: `001-cli-nav-tool` | **Date**: 2025-10-24 | **Spec**: [/specs/001-cli-nav-tool/spec.md](/specs/001-cli-nav-tool/spec.md)
 **Input**: Feature specification from `/specs/001-cli-nav-tool/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
 ## Summary
 
-Build a CLI tool that accepts natural language navigation queries (e.g., "从北京到上海"), parses the input using LangChain agents, and automatically launches a browser with Playwright to display routes on Gaode Maps. The system uses high-level tool functions orchestrated by an AI agent instead of direct DOM parsing.
+This CLI tool enables zero-click navigation queries by accepting natural language input like "从北京到上海" and automatically opening Chrome/Chromium browser to display Gaode Maps navigation routes. The system uses intelligent location parsing, context-based disambiguation, and automated browser control to deliver route information within 10 seconds. Built as a standalone executable with embedded browser automation for optimal user experience.
 
 ## Technical Context
 
-**Language/Version**: Python 3.11+
-**Primary Dependencies**: LangChain, Playwright, Gemini 2.5 Flash (Google), typer
-**Storage**: Local configuration files (JSON/YAML)
-**Testing**: pytest, playwright testing tools, mock agents
-**Target Platform**: Cross-platform CLI (Linux, macOS, Windows)
-**Project Type**: Single CLI application with modular tool architecture
-**Performance Goals**: <3s total response time, <2s agent processing, <1s browser launch
-**Constraints**: Internet connectivity required, browser installation required
-**Scale/Scope**: Single user tool, supports Chinese location queries
+**Language/Version**: Python 3.11+ (for standalone executable compilation with PyInstaller)
+**Primary Dependencies**: Playwright (browser automation), LangChain (LLM integration for NLP), typer (CLI interface), Anthropic/OpenAI (location parsing)
+**Storage**: N/A (stateless CLI tool)
+**Testing**: pytest (unit testing), Playwright testing (browser automation)
+**Target Platform**: Cross-platform desktop (Windows, macOS, Linux)
+**Project Type**: Single CLI application
+**Performance Goals**: <10 seconds total execution time including browser startup
+**Constraints**: Chrome/Chromium browser required, standalone executable distribution, minimal external dependencies
+**Scale/Scope**: Single user tool, low memory footprint (<100MB), offline parsing capability
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-### Core Principles for CLI Navigation Tool
+### Constitution Compliance Analysis
 
-**CLI Interface Requirement**: All functionality must be accessible via command-line interface with text I/O protocol (stdin/args → stdout, errors → stderr)
+**✅ AGENT-DRIVEN ARCHITECTURE (NON-NEGOTIABLE)**
+- **Status**: COMPLIANT
+- **Implementation**: Location parsing and browser automation will be driven by LangChain Agent tool selection rather than hardcoded workflows
+- **Tools**: High-level abstractions like `parse_navigation_query`, `launch_browser_with_route`, `handle_ambiguous_locations`
 
-**Test-First Requirement**: TDD mandatory with comprehensive tests for CLI parsing, agent orchestration, and browser automation
+**✅ DOM-LOCATOR-FREE AGENT LOGIC (NON-NEGOTIABLE)**
+- **Status**: COMPLIANT
+- **Implementation**: Playwright interactions encapsulated in tools, no DOM selectors in Agent logic
+- **Abstraction**: Tools like `navigate_to_gaode_maps` hide implementation details
 
-**Modular Architecture**: Each component (CLI parser, agent, tools) must be independently testable and replaceable
+**✅ AGENT AUTONOMY IN DECISION-MAKING (NON-NEGOTIABLE)**
+- **Status**: COMPLIANT
+- **Implementation**: Tool results returned as structured observations, Agent determines retry/alternative strategies
+- **Error Handling**: All failures reported as observations, Agent decides next actions
 
-**Error Handling**: All failure modes must provide clear, actionable error messages
+**✅ HIGH-LEVEL TOOL ABSTRACTION**
+- **Status**: COMPLIANT
+- **Implementation**: Business-level tools (parse_query, launch_navigation) vs technical tools (click_element)
+- **Interface**: Structured observations with success/failure status and context
 
-### GATES
+**Gate Status**: ✅ PASSED - Ready for Phase 0 research
 
-- [x] CLI interface design supports specified I/O protocol
-- [x] Agent architecture uses high-level tools (no direct DOM parsing)
-- [x] Performance targets achievable with chosen stack
-- [x] Error handling strategy defined for all failure modes
-- [x] Testing strategy covers all components
+### Post-Phase 1 Constitution Compliance Re-check
 
-**CONSTITUTION CHECK: PASSED** ✅
+**✅ AGENT-DRIVEN ARCHITECTURE (NON-NEGOTIABLE)**
+- **Status**: COMPLIANT (Post-Design)
+- **Implementation**: LangChain Agent with high-level tools for parsing, browser automation, and URL construction
+- **Verification**: No hardcoded execution paths, all decisions driven by Agent tool selection
 
-**Gate Analysis**:
-1. **CLI Interface**: Typer-based CLI with stdin/stdout protocol, JSON and human-readable output support
-2. **Agent Architecture**: LangChain ReAct agent with high-level tools (LocationParserTool, BrowserNavigationTool, URLConstructorTool)
-3. **Performance Targets**: Research confirms <3s total time achievable with browser pooling and Gemini 2.5 Flash
-4. **Error Handling**: Multi-layer error recovery (agent, tool, system levels) with user-friendly messages
-5. **Testing Strategy**: Comprehensive test suite (unit, integration, contract) with 90%+ coverage requirement
+**✅ DOM-LOCATOR-FREE AGENT LOGIC (NON-NEGOTIABLE)**
+- **Status**: COMPLIANT (Post-Design)
+- **Implementation**: Playwright interactions fully encapsulated in browser_tools.py with no DOM exposure
+- **Verification**: Agent uses `launch_browser_with_route` tool, no direct element access
 
-All constitution requirements satisfied with no violations requiring justification.
+**✅ AGENT AUTONOMY IN DECISION-MAKING (NON-NEGOTIABLE)**
+- **Status**: COMPLIANT (Post-Design)
+- **Implementation**: Structured observations returned from tools, Agent determines retry/fallback strategies
+- **Verification**: Error handling through observations, no hardcoded if/else decision trees
+
+**✅ HIGH-LEVEL TOOL ABSTRACTION**
+- **Status**: COMPLIANT (Post-Design)
+- **Implementation**: Business-level tools (`parse_navigation_query`, `launch_browser_with_route`) vs technical operations
+- **Verification**: All tools return structured observations with success/failure status
+
+**Updated Gate Status**: ✅ PASSED - Ready for Phase 2 Task Generation
 
 ## Project Structure
 
@@ -71,95 +90,44 @@ specs/[###-feature]/
 ### Source Code (repository root)
 
 ```text
-nav_cli/
-├── __init__.py
-├── cli.py                    # Main CLI interface using Typer
-├── agent.py                  # LangChain agent orchestration
-├── config.py                 # Configuration management
-├── exceptions.py             # Custom exception classes
-├── models/                   # Pydantic data models
+src/
+├── cli/
 │   ├── __init__.py
-│   ├── navigation.py         # NavigationQuery, LocationEntity
-│   ├── browser.py            # BrowserSession, RouteParameters
-│   └── results.py            # ProcessingResult, error types
-├── agents/                   # Agent components
-│   ├── __init__.py
-│   ├── navigator_agent.py    # Main ReAct agent
-│   ├── tools/                # Agent tools
-│   │   ├── __init__.py
-│   │   ├── location_parser.py    # Natural language parsing
-│   │   ├── url_constructor.py    # URL building for maps
-│   │   ├── browser_launcher.py   # Browser automation
-│   │   └── error_recovery.py     # Error handling tool
-│   └── prompts/               # Agent prompts
-│       ├── __init__.py
-│       ├── system.py          # System prompts
-│       └── templates.py       # Template prompts
-├── parsers/                  # Location parsing logic
-│   ├── __init__.py
-│   ├── chinese_nlp.py        # PaddleNLP + Jieba integration
-│   ├── pattern_matcher.py    # Regex-based patterns
-│   └── disambiguation.py     # Location disambiguation
-├── browser/                  # Browser automation
-│   ├── __init__.py
-│   ├── launcher.py           # Playwright browser control
-│   ├── pool.py               # Browser connection pooling
-│   └── platform/             # Platform-specific logic
-│       ├── __init__.py
-│       ├── macos.py
-│       ├── windows.py
-│       └── linux.py
-├── urls/                     # URL construction
-│   ├── __init__.py
-│   ├── gaode.py              # Gaode Maps URLs
-│   ├── providers/            # Map service providers
-│   │   ├── __init__.py
-│   │   ├── base.py           # Base provider class
-│   │   ├── gaode.py          # Gaode implementation
-│   │   └── baidu.py          # Baidu implementation
-│   └── encoding.py           # URL encoding utilities
-├── cache/                    # Caching layer
-│   ├── __init__.py
-│   ├── memory.py             # In-memory caching
-│   └── file.py               # File-based caching
-├── utils/                    # Utilities
-│   ├── __init__.py
-│   ├── logging.py            # Logging configuration
-│   ├── performance.py        # Performance monitoring
-│   └── validation.py         # Input validation
-└── tests/                    # Test suite
-    ├── __init__.py
-    ├── unit/                 # Unit tests
-    │   ├── test_parsers.py
-    │   ├── test_browser.py
-    │   ├── test_urls.py
-    │   └── test_agent.py
-    ├── integration/          # Integration tests
-    │   ├── test_navigation_flow.py
-    │   ├── test_performance.py
-    │   └── test_cross_platform.py
-    ├── contract/             # Contract tests
-    │   ├── test_api.py
-    │   └── test_cli.py
-    └── fixtures/             # Test data
-        ├── queries.py
-        └── responses.py
+│   ├── main.py              # Typer CLI interface
+│   └── commands.py          # CLI command definitions
+├── agents/
+│   __init__.py
+│   ├── navigation_agent.py  # LangChain Agent for decision making
+│   └── prompts.py           # Agent prompts and templates
+├── tools/
+│   __init__.py
+│   ├── browser_tools.py     # Playwright-based browser automation
+│   ├── parsing_tools.py     # Natural language location parsing
+│   ├── gaode_tools.py       # Gaode Maps specific interactions
+│   └── error_tools.py       # Error handling and retry logic
+├── models/
+│   __init__.py
+│   ├── navigation_query.py  # Data models for navigation requests
+│   └── location.py          # Location entity models
+└── utils/
+    __init__.py
+    ├── config.py            # Configuration management
+    └── observations.py      # Structured observation classes
 
-# Configuration files
-.env.example                 # Environment template
-requirements.txt             # Python dependencies
-pyproject.toml              # Project configuration
-README.md                   # Project documentation
-LICENSE                     # License file
+tests/
+├── unit/
+│   ├── test_parsing_tools.py
+│   ├── test_browser_tools.py
+│   └── test_models.py
+├── integration/
+│   ├── test_agent_flow.py
+│   └── test_end_to_end.py
+└── fixtures/
+    └── sample_queries.py
 ```
 
-**Structure Decision**: Single Python package structure organized by functional domains (agents, parsers, browser, urls). This modular architecture supports independent testing and development of each component while maintaining clear separation of concerns. The agents/ directory contains the LangChain orchestration logic, while parsers/, browser/, and urls/ handle the specialized functionality.
+**Structure Decision**: Single Python project organized by functional areas. CLI layer handles user interaction, Agents drive decision-making, Tools provide capabilities, Models define data structures, Utils provide shared functionality. Clear separation of concerns following Agent-Driven Architecture principles.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
-
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+No constitutional violations - all requirements compliant with Agent-Driven Architecture principles.

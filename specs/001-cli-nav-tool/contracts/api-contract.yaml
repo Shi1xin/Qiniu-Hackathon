@@ -1,0 +1,754 @@
+# API Contract: CLI Navigation Tool
+
+**Version**: 1.0
+**Format**: OpenAPI 3.0.3
+**Created**: 2025-10-24
+
+openapi: 3.0.3
+info:
+  title: CLI Navigation Tool API
+  description: |
+    Internal API contracts for the CLI Navigation Tool's Agent-Driven Architecture.
+    This defines the interfaces between the LangChain Agent and various tools for
+    natural language parsing, browser automation, and navigation services.
+  version: "1.0.0"
+  contact:
+    name: CLI Navigation Tool Team
+
+servers:
+  - url: internal://localhost:8000
+    description: Internal API server (not exposed externally)
+
+paths:
+  # Navigation Processing Endpoint
+  /navigation/process:
+    post:
+      summary: Process natural language navigation query
+      description: |
+        Core endpoint that processes natural language input and returns navigation results.
+        This orchestrates the complete flow from parsing to browser launch.
+      operationId: processNavigationQuery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NavigationRequest'
+      responses:
+        '200':
+          description: Navigation query processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NavigationResponse'
+        '400':
+          description: Invalid input provided
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal processing error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Location Parsing Endpoints
+  /parsing/extract-locations:
+    post:
+      summary: Extract locations from natural language
+      description: |
+        Extract origin and destination locations from Chinese natural language input.
+        Uses hybrid NLP approach with PaddleNLP and LLM fallback.
+      operationId: extractLocations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocationExtractionRequest'
+      responses:
+        '200':
+          description: Locations extracted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationExtractionResponse'
+        '400':
+          description: Parsing failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /parsing/disambiguate:
+    post:
+      summary: Disambiguate ambiguous locations
+      description: |
+        Resolve location ambiguity using context and user confirmation when needed.
+        Implements context-based disambiguation per clarification requirements.
+      operationId: disambiguateLocation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DisambiguationRequest'
+      responses:
+        '200':
+          description: Location disambiguated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DisambiguationResponse'
+        '400':
+          description: Disambiguation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Browser Automation Endpoints
+  /browser/launch:
+    post:
+      summary: Launch browser for navigation
+      description: |
+        Launch Chrome/Chromium browser with optimized settings for CLI navigation.
+        Supports headless and headed modes per configuration.
+      operationId: launchBrowser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BrowserLaunchRequest'
+      responses:
+        '200':
+          description: Browser launched successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrowserSessionResponse'
+        '400':
+          description: Browser launch failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /browser/navigate:
+    post:
+      summary: Navigate to map URL
+      description: |
+        Navigate browser to constructed Gaode Maps URL with route parameters.
+        Implements single retry with exponential backoff per clarification.
+      operationId: navigateToUrl
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NavigationRequest'
+      responses:
+        '200':
+          description: Navigation completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NavigationResponse'
+        '400':
+          description: Navigation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # URL Construction Endpoints
+  /urls/construct:
+    post:
+      summary: Construct navigation URL
+      description: |
+        Construct Gaode Maps URL with proper Chinese character encoding.
+        Supports fallback map services as needed.
+      operationId: constructNavigationUrl
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UrlConstructionRequest'
+      responses:
+        '200':
+          description: URL constructed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UrlConstructionResponse'
+        '400':
+          description: URL construction failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    # Request Schemas
+    NavigationRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          description: Natural language navigation query
+          example: "从北京到上海"
+          minLength: 3
+          maxLength: 200
+        transport_mode:
+          $ref: '#/components/schemas/TransportMode'
+        headless:
+          type: boolean
+          description: Run browser in headless mode
+          default: true
+        timeout_seconds:
+          type: integer
+          description: Operation timeout in seconds
+          minimum: 5
+          maximum: 60
+          default: 10
+
+    LocationExtractionRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          description: Natural language text to parse
+          example: "中关村到三里屯"
+          minLength: 3
+          maxLength: 200
+        context:
+          type: object
+          description: Additional context for parsing
+          properties:
+            previous_queries:
+              type: array
+              items:
+                type: string
+              description: Previous queries for context
+            preferred_city:
+              type: string
+              description: Preferred city for disambiguation
+              example: "北京"
+
+    DisambiguationRequest:
+      type: object
+      required:
+        - location
+        - alternatives
+      properties:
+        location:
+          type: string
+          description: Ambiguous location name
+          example: "人民广场"
+        alternatives:
+          type: array
+          items:
+            $ref: '#/components/schemas/LocationAlternative'
+          description: Alternative location options
+        context:
+          type: object
+          description: Context for disambiguation decision
+          properties:
+            origin_proximity:
+              type: object
+              description: Distance from origin location
+              properties:
+                latitude:
+                  type: number
+                  format: float
+                longitude:
+                  type: number
+                  format: float
+            user_history:
+              type: array
+              items:
+                type: string
+              description: User's previous location selections
+
+    BrowserLaunchRequest:
+      type: object
+      properties:
+        browser_type:
+          $ref: '#/components/schemas/BrowserType'
+        headless:
+          type: boolean
+          description: Run browser in headless mode
+          default: true
+        user_agent:
+          type: string
+          description: Custom user agent string
+        window_size:
+          type: object
+          description: Browser window dimensions
+          properties:
+            width:
+              type: integer
+              minimum: 800
+              maximum: 1920
+              default: 1280
+            height:
+              type: integer
+              minimum: 600
+              maximum: 1080
+              default: 800
+
+    UrlConstructionRequest:
+      type: object
+      required:
+        - origin
+        - destination
+      properties:
+        origin:
+          $ref: '#/components/schemas/LocationEntity'
+        destination:
+          $ref: '#/components/schemas/LocationEntity'
+        transport_mode:
+          $ref: '#/components/schemas/TransportMode'
+        service_provider:
+          $ref: '#/components/schemas/MapServiceProvider'
+        route_options:
+          type: object
+          description: Additional route preferences
+          properties:
+            avoid_tolls:
+              type: boolean
+              default: false
+            avoid_highways:
+              type: boolean
+              default: false
+
+    # Response Schemas
+    NavigationResponse:
+      type: object
+      required:
+        - success
+        - message
+        - total_time_ms
+      properties:
+        success:
+          type: boolean
+          description: Whether navigation was successful
+        message:
+          type: string
+          description: Human-readable result message
+          example: "✅ 路线规划成功！"
+        total_time_ms:
+          type: integer
+          description: Total processing time in milliseconds
+          example: 2500
+        query:
+          $ref: '#/components/schemas/NavigationQuery'
+        route_params:
+          $ref: '#/components/schemas/RouteParameters'
+        browser_session:
+          $ref: '#/components/schemas/BrowserSession'
+        suggestions:
+          type: array
+          items:
+            type: string
+          description: Suggestions for user if needed
+        help_text:
+          type: string
+          description: Additional help text
+
+    LocationExtractionResponse:
+      type: object
+      required:
+        - success
+        - locations
+      properties:
+        success:
+          type: boolean
+          description: Whether extraction was successful
+        locations:
+          type: object
+          properties:
+            origin:
+              $ref: '#/components/schemas/LocationEntity'
+            destination:
+              $ref: '#/components/schemas/LocationEntity'
+        confidence_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Overall confidence in extraction
+        processing_method:
+          type: string
+          description: Method used for extraction
+          enum: [regex, paddle_nlp, llm_fallback]
+        needs_clarification:
+          type: boolean
+          description: Whether user input needs clarification
+
+    DisambiguationResponse:
+      type: object
+      required:
+        - success
+        - resolved_location
+      properties:
+        success:
+          type: boolean
+          description: Whether disambiguation was successful
+        resolved_location:
+          $ref: '#/components/schemas/LocationEntity'
+        requires_user_input:
+          type: boolean
+          description: Whether user confirmation is needed
+        user_prompt:
+          type: string
+          description: Prompt to show user for confirmation
+        alternatives:
+          type: array
+          items:
+            $ref: '#/components/schemas/LocationAlternative'
+          description: Remaining alternatives if still ambiguous
+
+    BrowserSessionResponse:
+      type: object
+      required:
+        - success
+        - session_id
+      properties:
+        success:
+          type: boolean
+          description: Whether browser launch was successful
+        session_id:
+          type: string
+          description: Unique browser session identifier
+          format: uuid
+        launch_time_ms:
+          type: integer
+          description: Browser launch time in milliseconds
+        browser_info:
+          type: object
+          description: Browser information
+          properties:
+            type:
+              $ref: '#/components/schemas/BrowserType'
+            version:
+              type: string
+            headless:
+              type: boolean
+        error_details:
+          type: array
+          items:
+            type: string
+          description: Errors encountered during launch
+
+    UrlConstructionResponse:
+      type: object
+      required:
+        - success
+        - url
+      properties:
+        success:
+          type: boolean
+          description: Whether URL construction was successful
+        url:
+          type: string
+          description: Constructed navigation URL
+          example: "https://uri.amap.com/navigation?from=%E5%8C%97%E4%BA%AC&to=%E4%B8%8A%E6%B5%B7&mode=car&coordinate=gaode"
+        construction_time_ms:
+          type: integer
+          description: Time to construct URL in milliseconds
+        service_provider:
+          $ref: '#/components/schemas/MapServiceProvider'
+        fallback_used:
+          type: boolean
+          description: Whether fallback service was used
+        encoded_components:
+          type: object
+          description: URL-encoded components
+          properties:
+            origin:
+              type: string
+            destination:
+              type: string
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - error_code
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+          example: "Chrome browser not found on system"
+        error_code:
+          type: string
+          description: Machine-readable error code
+          enum: [
+            BROWSER_NOT_AVAILABLE,
+            PARSE_ERROR,
+            NETWORK_ERROR,
+            TIMEOUT_ERROR,
+            INVALID_INPUT,
+            SYSTEM_ERROR
+          ]
+        error_details:
+          type: object
+          description: Additional error details for debugging
+        suggestions:
+          type: array
+          items:
+            type: string
+          description: Suggestions for resolving the error
+        help_text:
+          type: string
+          description: Additional help text
+
+    # Data Model Schemas (reused from data-model.md)
+    NavigationQuery:
+      type: object
+      properties:
+        raw_input:
+          type: string
+          description: Original user input text
+        origin:
+          type: string
+          description: Parsed origin location
+        destination:
+          type: string
+          description: Parsed destination location
+        query_type:
+          $ref: '#/components/schemas/QueryType'
+        confidence_score:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        parsing_method:
+          type: string
+          description: Method used for parsing
+        processing_time_ms:
+          type: integer
+          description: Processing time in milliseconds
+        parse_errors:
+          type: array
+          items:
+            type: string
+        needs_clarification:
+          type: boolean
+
+    LocationEntity:
+      type: object
+      required:
+        - name
+        - type
+        - confidence
+      properties:
+        name:
+          type: string
+          description: Location name
+          example: "北京"
+        type:
+          $ref: '#/components/schemas/LocationType'
+        confidence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Confidence score 0-1
+        context:
+          type: string
+          description: Additional context for disambiguation
+        alternatives:
+          type: array
+          items:
+            type: string
+          description: Alternative location names
+        parent_region:
+          type: string
+          description: Parent administrative region
+        extraction_method:
+          type: string
+          description: Method used for extraction
+        coordinates:
+          type: object
+          properties:
+            latitude:
+              type: number
+              format: float
+            longitude:
+              type: number
+              format: float
+
+    LocationAlternative:
+      type: object
+      required:
+        - name
+        - region
+      properties:
+        name:
+          type: string
+          description: Alternative location name
+        region:
+          type: string
+          description: Administrative region
+        confidence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        coordinates:
+          type: object
+          properties:
+            latitude:
+              type: number
+              format: float
+            longitude:
+              type: number
+              format: float
+
+    RouteParameters:
+      type: object
+      required:
+        - origin
+        - destination
+      properties:
+        origin:
+          $ref: '#/components/schemas/LocationEntity'
+        destination:
+          $ref: '#/components/schemas/LocationEntity'
+        transport_mode:
+          $ref: '#/components/schemas/TransportMode'
+        avoid_tolls:
+          type: boolean
+          default: false
+        avoid_highways:
+          type: boolean
+          default: false
+        service_provider:
+          $ref: '#/components/schemas/MapServiceProvider'
+        encoded_origin:
+          type: string
+          description: URL-encoded origin
+        encoded_destination:
+          type: string
+          description: URL-encoded destination
+        construction_time_ms:
+          type: integer
+          description: Construction time in milliseconds
+
+    BrowserSession:
+      type: object
+      required:
+        - session_id
+      properties:
+        browser_type:
+          $ref: '#/components/schemas/BrowserType'
+        headless:
+          type: boolean
+        user_agent:
+          type: string
+        session_id:
+          type: string
+          format: uuid
+        launched_at:
+          type: string
+          format: date-time
+        page_url:
+          type: string
+        launch_time_ms:
+          type: integer
+        navigation_time_ms:
+          type: integer
+        launch_errors:
+          type: array
+          items:
+            type: string
+        navigation_errors:
+          type: array
+          items:
+            type: string
+
+    # Enum Schemas
+    QueryType:
+      type: string
+      enum:
+        - city_to_city
+        - district_to_district
+        - landmark_to_landmark
+        - transport_to_transport
+        - university_to_university
+        - unknown
+      description: Type of navigation query
+
+    LocationType:
+      type: string
+      enum:
+        - city
+        - district
+        - landmark
+        - transport
+        - university
+        - address
+        - unknown
+      description: Type of location
+
+    TransportMode:
+      type: string
+      enum:
+        - car
+        - walk
+        - bus
+        - ride
+        - truck
+      default: car
+      description: Transportation mode
+
+    BrowserType:
+      type: string
+      enum:
+        - chromium
+        - firefox
+        - webkit
+      default: chromium
+      description: Browser type
+
+    MapServiceProvider:
+      type: string
+      enum:
+        - gaode
+        - baidu
+        - tencent
+      default: gaode
+      description: Map service provider
+
+  # Security Schemes
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Internal API key for authentication
+
+security:
+  - ApiKeyAuth: []
+
+# Tag Definitions for logical grouping
+tags:
+  - name: Navigation
+    description: Core navigation processing endpoints
+  - name: Parsing
+    description: Natural language parsing and location extraction
+  - name: Browser
+    description: Browser automation and control
+  - name: URLs
+    description: URL construction and management

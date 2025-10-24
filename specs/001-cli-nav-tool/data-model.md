@@ -1,7 +1,7 @@
 # Data Model: CLI Navigation Tool
 
 **Version**: 1.0
-**Created**: 2025-01-24
+**Created**: 2025-10-24
 **Based on**: Feature Specification and Research Findings
 
 ## Core Entities
@@ -276,20 +276,20 @@ class ProcessingResult(BaseModel):
 
     @validator('total_time_ms')
     def validate_performance(cls, v):
-        if v > 5000:  # 5 seconds
-            raise ValueError("Processing time exceeds 5 second limit")
+        if v > 10000:  # 10 seconds per clarification
+            raise ValueError("Processing time exceeds 10 second limit")
         return v
 
     def meets_performance_target(self) -> bool:
-        """Check if result meets 3-second performance target"""
-        return self.total_time_ms <= 3000
+        """Check if result meets 10-second performance target"""
+        return self.total_time_ms <= 10000
 
     def get_user_message(self) -> str:
         """Get user-friendly message"""
         if self.success:
             if self.total_time_ms < 1000:
                 return f"✅ 路线规划成功！耗时 {self.total_time_ms}ms"
-            elif self.total_time_ms < 3000:
+            elif self.total_time_ms < 5000:
                 return f"✅ 路线规划完成，耗时 {self.total_time_ms}ms"
             else:
                 return f"⚠️ 路线规划完成，但耗时较长 ({self.total_time_ms}ms)"
@@ -337,9 +337,9 @@ graph TD
 - Type must be in supported location categories
 
 ### Performance Validation
-- Total processing time <= 5 seconds (hard limit)
-- Target processing time <= 3 seconds (success criteria)
-- Browser launch time <= 1 second (performance target)
+- Total processing time <= 10 seconds (per clarification)
+- Target processing time <= 10 seconds (success criteria)
+- Browser launch time <= 3 seconds (performance target)
 
 ### Error Validation
 - All error paths must have user-friendly messages

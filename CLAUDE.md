@@ -3,6 +3,8 @@
 Auto-generated from all feature plans. Last updated: 2025-10-24
 
 ## Active Technologies
+- Python 3.11+ (for standalone executable compilation with PyInstaller) + Playwright (browser automation), LangChain (LLM integration for NLP), typer (CLI interface), Anthropic/OpenAI (location parsing) (001-cli-nav-tool)
+- N/A (stateless CLI tool) (001-cli-nav-tool)
 
 - Python 3.11+ + LangChain, Playwright, LLM Provider (OpenAI/Anthropic), typer (001-cli-nav-tool)
 
@@ -22,6 +24,7 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.11+: Follow standard conventions
 
 ## Recent Changes
+- 001-cli-nav-tool: Added Python 3.11+ (for standalone executable compilation with PyInstaller) + Playwright (browser automation), LangChain (LLM integration for NLP), typer (CLI interface), Anthropic/OpenAI (location parsing)
 
 - 001-cli-nav-tool: Added Python 3.11+ + LangChain, Playwright, LLM Provider (OpenAI/Anthropic), typer
 
