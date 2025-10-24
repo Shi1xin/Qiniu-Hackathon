@@ -5,6 +5,16 @@
 **Status**: Draft
 **Input**: User description: "我需要构建一个命令行(CLI)工具，它能接收用户输入的自然语言（如"从A到B"）。该工具必须能自动启动浏览器，打开高德地图，并直接在页面上展示A到B的导航路线，实现零点击查询。"
 
+## Clarifications
+
+### Session 2025-10-24
+
+- Q: Performance timing requirements and acceptable latency → A: 10 seconds total user-facing time
+- Q: Browser compatibility and fallback mechanisms → A: Chrome/Chromium only with explicit error if not available
+- Q: Location parsing strategy for ambiguous names → A: Use context-based disambiguation with user confirmation when truly ambiguous
+- Q: Error recovery and retry logic → A: Single retry with exponential backoff for network issues only
+- Q: Distribution and installation method → A: Standalone executable with minimal dependencies
+
 ## User Scenarios & Testing *(mandatory)*
 
 <!--
@@ -87,7 +97,11 @@ User receives helpful feedback when the input cannot be processed or when there 
 - **FR-005**: System MUST display the navigation route directly without requiring additional user interaction
 - **FR-006**: System MUST handle various location formats including landmarks, place names, and addresses
 - **FR-007**: System MUST provide error messages when input cannot be processed or browser cannot be launched
-- **FR-008**: System MUST complete the entire process (input to route display) within [NEEDS CLARIFICATION: acceptable time limit not specified - 3 seconds, 5 seconds?]
+- **FR-008**: System MUST complete the entire process (input to route display) within 10 seconds
+- **FR-009**: System MUST support Chrome/Chromium browser only and provide explicit error if not available
+- **FR-010**: System MUST use context-based disambiguation for ambiguous location names, prompting user only when truly ambiguous
+- **FR-011**: System MUST perform single retry with exponential backoff for network connectivity issues only
+- **FR-012**: System MUST be distributed as standalone executable with minimal dependencies
 
 ### Key Entities *(include if feature involves data)*
 
@@ -99,7 +113,7 @@ User receives helpful feedback when the input cannot be processed or when there 
 
 ### Measurable Outcomes
 
-- **SC-001**: Users can complete a navigation query from command input to route display in under 3 seconds
+- **SC-001**: Users can complete a navigation query from command input to route display in under 10 seconds
 - **SC-002**: 95% of valid natural language inputs are successfully parsed and result in correct route display
 - **SC-003**: 90% of users can successfully use the tool on their first attempt without additional instructions
 - **SC-004**: Error handling provides sufficient guidance for users to self-correct input issues 80% of the time
