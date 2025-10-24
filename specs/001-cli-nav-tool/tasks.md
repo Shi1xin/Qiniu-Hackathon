@@ -12,7 +12,7 @@ description: "Task list for CLI Navigation Tool implementation"
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
-## Format: `[ID] [P?] [Story] Description`
+## Format: `[ID] [P?] [Story?] Description with file path`
 
 - **[P]**: Can run in parallel (different files, no dependencies)
 - **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
@@ -20,8 +20,8 @@ description: "Task list for CLI Navigation Tool implementation"
 
 ## Path Conventions
 
-- **Single project**: `nav_cli/`, `tests/` at repository root
-- Paths shown below follow the plan.md structure for `nav_cli/` package
+- **Single project**: `src/`, `tests/` at repository root (per plan.md)
+- Paths shown below follow the plan.md structure for `src/` package
 
 ---
 
@@ -29,12 +29,12 @@ description: "Task list for CLI Navigation Tool implementation"
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create nav_cli project structure per implementation plan
-- [ ] T002 Initialize Python 3.11+ project with dependencies (LangChain, Playwright, typer, etc.)
+- [ ] T001 Create project structure per implementation plan
+- [ ] T002 Initialize Python 3.11+ project with dependencies (LangChain, Playwright, typer, Pydantic, Rich)
 - [ ] T003 [P] Configure linting (ruff) and formatting (black) tools
 - [ ] T004 [P] Setup pytest testing framework with coverage
 - [ ] T005 Create requirements.txt and pyproject.toml with project dependencies
-- [ ] T006 [P] Create .env.example template with API key configuration
+- [ ] T006 [P] Create .env.example template with API key configuration (GOOGLE_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY)
 - [ ] T007 [P] Initialize Git repository with .gitignore for Python projects
 
 ---
@@ -45,15 +45,15 @@ description: "Task list for CLI Navigation Tool implementation"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T008 Setup basic data models (NavigationQuery, LocationEntity, RouteParameters, BrowserSession, ProcessingResult) in nav_cli/models/
-- [ ] T009 [P] Create custom exception classes in nav_cli/exceptions.py
-- [ ] T010 [P] Configure logging infrastructure in nav_cli/utils/logging.py
-- [ ] T011 [P] Create configuration management in nav_cli/config.py
-- [ ] T012 [P] Setup performance monitoring in nav_cli/utils/performance.py
-- [ ] T013 Create input validation utilities in nav_cli/utils/validation.py
-- [ ] T014 [P] Create base CLI interface structure in nav_cli/cli.py using typer
-- [ ] T015 Create cache infrastructure (memory and file) in nav_cli/cache/
-- [ ] T016 Install and configure Playwright browsers (chromium, firefox, webkit)
+- [ ] T008 Setup basic data models (NavigationQuery, LocationEntity, RouteParameters, BrowserSession, ProcessingResult) in src/models/navigation.py
+- [ ] T009 [P] Create custom exception classes in src/exceptions.py (BrowserNotAvailableError, LocationParsingError, NavigationError)
+- [ ] T010 [P] Configure logging infrastructure in src/utils/logging.py
+- [ ] T011 [P] Create configuration management in src/config.py using Pydantic Settings
+- [ ] T012 [P] Setup performance monitoring in src/utils/performance.py (10-second target tracking)
+- [ ] T013 Create input validation utilities in src/utils/validation.py
+- [ ] T014 [P] Create base CLI interface structure in src/cli/main.py using typer
+- [ ] T015 Create cache infrastructure (memory and file) in src/cache/
+- [ ] T016 Install and configure Playwright browser (Chrome/Chromium only per clarification)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -61,222 +61,222 @@ description: "Task list for CLI Navigation Tool implementation"
 
 ## Phase 3: User Story 1 - Basic Navigation Query (Priority: P1) 🎯 MVP
 
-**Goal**: Parse "从北京到上海" style queries and launch browser with Gaode Maps navigation
+**Goal**: Parse "从北京到上海" style queries and launch Chrome/Chromium browser with Gaode Maps navigation
 
-**Independent Test**: Run `python -m nav_cli "从北京到上海"` and verify browser opens with correct Beijing-Shanghai route
+**Independent Test**: Run `python -m src.cli.main "从北京到上海"` and verify Chrome/Chromium browser opens with correct Beijing-Shanghai route within 10 seconds
 
 ### Tests for User Story 1 (TDD Required) ⚠️
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T017 [P] [US1] Contract test for parsing API in tests/contract/test_parsing.py
-- [ ] T018 [P] [US1] Contract test for URL construction API in tests/contract/test_url_construction.py
-- [ ] T019 [P] [US1] Contract test for browser launch API in tests/contract/test_browser.py
+- [ ] T017 [P] [US1] Unit test for NavigationQuery model in tests/unit/test_navigation_query.py
+- [ ] T018 [P] [US1] Unit test for LocationEntity model in tests/unit/test_location_entity.py
+- [ ] T019 [P] [US1] Unit test for RouteParameters model in tests/unit/test_route_parameters.py
 - [ ] T020 [P] [US1] Integration test for navigation flow in tests/integration/test_navigation_flow.py
-- [ ] T021 [P] [US1] Performance test for <3s response time in tests/integration/test_performance.py
+- [ ] T021 [P] [US1] Performance test for <10s response time in tests/integration/test_performance.py
 
 ### Implementation for User Story 1
 
-- [ ] T022 [P] [US1] Implement NavigationQuery model in nav_cli/models/navigation.py
-- [ ] T023 [P] [US1] Implement LocationEntity model in nav_cli/models/navigation.py
-- [ ] T024 [P] [US1] Implement RouteParameters model in nav_cli/models/navigation.py
-- [ ] T025 [P] [US1] Implement BrowserSession model in nav_cli/models/browser.py
-- [ ] T026 [P] [US1] Implement ProcessingResult model in nav_cli/models/results.py
-- [ ] T027 [US1] Implement basic Chinese NLP parsing in nav_cli/parsers/chinese_nlp.py (depends on T022, T023)
-- [ ] T028 [P] [US1] Implement regex pattern matching in nav_cli/parsers/pattern_matcher.py
-- [ ] T029 [US1] Create LangChain ReAct agent in nav_cli/agents/navigator_agent.py (depends on T027, T028)
-- [ ] T030 [P] [US1] Implement LocationParserTool in nav_cli/agents/tools/location_parser.py
-- [ ] T031 [P] [US1] Implement URLConstructorTool in nav_cli/agents/tools/url_constructor.py
-- [ ] T032 [P] [US1] Implement BrowserNavigationTool in nav_cli/agents/tools/browser_launcher.py
-- [ ] T033 [P] [US1] Implement ErrorRecoveryTool in nav_cli/agents/tools/error_recovery.py
-- [ ] T034 [US1] Implement Gaode Maps URL construction in nav_cli/urls/gaode.py (depends on T024)
-- [ ] T035 [US1] Implement Playwright browser launcher in nav_cli/browser/launcher.py (depends on T025)
-- [ ] T036 [P] [US1] Implement browser connection pooling in nav_cli/browser/pool.py
-- [ ] T037 [P] [US1] Create platform-specific browser configurations in nav_cli/browser/platform/
-- [ ] T038 [US1] Integrate agent with CLI interface in nav_cli/cli.py (depends on T029, T030, T031, T032, T033)
-- [ ] T039 [US1] Add main navigation command in nav_cli/cli.py with error handling
-- [ ] T040 [US1] Add progress reporting and user feedback in CLI output
-- [ ] T041 [US1] Implement comprehensive error handling for all failure modes
-- [ ] T042 [US1] Add logging for user story 1 operations
-
-**Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
+- [ ] T022 [P] [US1] Implement NavigationQuery model in src/models/navigation.py
+- [ ] T023 [P] [US1] Implement LocationEntity model in src/models/navigation.py
+- [ ] T024 [P] [US1] Implement RouteParameters model in src/models/navigation.py
+- [ ] T025 [P] [US1] Implement BrowserSession model in src/models/browser.py
+- [ ] T026 [P] [US1] Implement ProcessingResult model in src/models/results.py
+- [ ] T027 [US1] Implement basic Chinese NLP parsing in src/tools/parsing_tools.py (depends on T022, T023)
+- [ ] T028 [P] [US1] Implement regex pattern matching in src/tools/parsing_tools.py
+- [ ] T029 [US1] Create LangChain Agent in src/agents/navigation_agent.py (depends on T027, T028)
+- [ ] T030 [P] [US1] Implement parse_navigation_query tool in src/tools/parsing_tools.py
+- [ ] T031 [P] [US1] Implement launch_browser_with_route tool in src/tools/browser_tools.py
+- [ ] T032 [P] [US1] Implement handle_ambiguous_locations tool in src/tools/parsing_tools.py
+- [ ] T033 [P] [US1] Implement Gaode Maps URL construction in src/tools/gaode_tools.py (depends on T024)
+- [ ] T034 [US1] Implement Playwright Chrome/Chromium browser launcher in src/tools/browser_tools.py (depends on T025)
+- [ ] T035 [P] [US1] Implement browser connection pooling in src/tools/browser_tools.py
+- [ ] T036 [P] [US1] Create platform-specific Chrome/Chromium configurations in src/tools/browser_tools.py
+- [ ] T037 [US1] Integrate agent with CLI interface in src/cli/main.py (depends on T029, T030, T031, T032, T033)
+- [ ] T038 [US1] Add main navigation command in src/cli/commands.py with error handling
+- [ ] T039 [US1] Add progress reporting and user feedback in CLI output
+- [ ] T040 [US1] Implement comprehensive error handling for Chrome/Chromium browser unavailability
+- [ ] T041 [US1] Add logging for user story 1 operations
+- [ ] T042 [US1] Implement single retry with exponential backoff for network issues (per clarification)
 
 ---
 
 ## Phase 4: User Story 2 - Multiple Location Formats (Priority: P2)
 
-**Goal**: Handle various location formats: landmarks, districts, universities, transport hubs
+**Goal**: Handle various location formats including landmarks, districts, universities, and transport hubs
 
-**Independent Test**: Run queries like "中关村到三里屯", "清华大学到北京大学", "北京站到首都机场" and verify correct route display
+**Independent Test**: Run CLI tool with queries like "中关村到三里屯", "清华大学到北京大学", "东直门到西直门" and verify correct parsing and navigation
 
-### Tests for User Story 2 (TDD Required) ⚠️
+### Tests for User Story 2
 
-- [ ] T043 [P] [US2] Contract tests for location type parsing in tests/contract/test_location_types.py
-- [ ] T044 [P] [US2] Integration tests for multiple query formats in tests/integration/test_location_formats.py
+- [ ] T043 [P] [US2] Unit test for district location parsing in tests/unit/test_location_parsing.py
+- [ ] T044 [P] [US2] Unit test for landmark recognition in tests/unit/test_location_parsing.py
+- [ ] T045 [P] [US2] Unit test for transport hub identification in tests/unit/test_location_parsing.py
+- [ ] T046 [P] [US2] Integration test for multiple location formats in tests/integration/test_location_formats.py
 
 ### Implementation for User Story 2
 
-- [ ] T045 [P] [US2] Enhance LocationEntity with type-specific validation in nav_cli/models/navigation.py
-- [ ] T046 [P] [US2] Implement district-level location parsing in nav_cli/parsers/chinese_nlp.py
-- [ ] T047 [P] [US2] Implement landmark recognition patterns in nav_cli/parsers/pattern_matcher.py
-- [ ] T048 [P] [US2] Implement transport hub identification in nav_cli/parsers/chinese_nlp.py
-- [ ] T049 [P] [US2] Implement university name recognition in nav_cli/parsers/chinese_nlp.py
-- [ ] T050 [US2] Create location disambiguation logic in nav_cli/parsers/disambiguation.py
-- [ ] T051 [US2] Enhance LocationParserTool with multiple format support in nav_cli/agents/tools/location_parser.py
-- [ ] T052 [US2] Add context-aware location resolution in nav_cli/agents/tools/location_parser.py
-- [ ] T053 [US2] Integrate new parsing capabilities with main agent flow
-
-**Checkpoint**: User Stories 1 AND 2 should both work independently
+- [ ] T047 [P] [US2] Enhance LocationEntity with type-specific validation in src/models/navigation.py
+- [ ] T048 [P] [US2] Implement district-level location parsing in src/tools/parsing_tools.py
+- [ ] T049 [P] [US2] Implement landmark recognition patterns in src/tools/parsing_tools.py
+- [ ] T050 [P] [US2] Implement transport hub identification in src/tools/parsing_tools.py
+- [ ] T051 [P] [US2] Implement university name recognition in src/tools/parsing_tools.py
+- [ ] T052 [P] [US2] Create location disambiguation logic in src/tools/parsing_tools.py
+- [ ] T053 [P] [US2] Enhance parse_navigation_query tool with multiple format support in src/tools/parsing_tools.py
+- [ ] T054 [P] [US2] Add context-aware location resolution in src/tools/parsing_tools.py
+- [ ] T055 [US2] Update LocationEntity confidence scoring for different location types
+- [ ] T056 [US2] Add support for location alternatives in src/models/navigation.py
+- [ ] T057 [US2] Implement parent region context for location disambiguation
 
 ---
 
 ## Phase 5: User Story 3 - Error Handling and Feedback (Priority: P3)
 
-**Goal**: Provide helpful error messages and feedback for invalid inputs and failures
+**Goal**: Provide helpful feedback for invalid inputs, ambiguous locations, and browser launch failures
 
-**Independent Test**: Provide invalid inputs and verify helpful error messages with troubleshooting suggestions
+**Independent Test**: Test with invalid inputs, ambiguous locations, and simulated browser failures to verify appropriate error messages
 
-### Tests for User Story 3 (TDD Required) ⚠️
+### Tests for User Story 3
 
-- [ ] T054 [P] [US3] Contract tests for error scenarios in tests/contract/test_error_handling.py
-- [ ] T055 [P] [US3] Integration tests for user guidance in tests/integration/test_user_feedback.py
+- [ ] T058 [P] [US3] Unit test for error message templates in tests/unit/test_error_handling.py
+- [ ] T059 [P] [US3] Unit test for input validation with user-friendly messages in tests/unit/test_validation.py
+- [ ] T060 [P] [US3] Integration test for error recovery in tests/integration/test_error_recovery.py
+- [ ] T061 [P] [US3] Unit test for browser launch failure diagnostics in tests/unit/test_browser_tools.py
 
 ### Implementation for User Story 3
 
-- [ ] T056 [P] [US3] Create error message templates in nav_cli/exceptions.py
-- [ ] T057 [P] [US3] Implement input validation with user-friendly messages in nav_cli/utils/validation.py
-- [ ] T058 [US3] Create user suggestion system for common errors in nav_cli/agents/tools/error_recovery.py
-- [ ] T059 [P] [US3] Implement ambiguous location handling in nav_cli/parsers/disambiguation.py
-- [ ] T060 [US3] Create browser launch failure diagnostics in nav_cli/browser/launcher.py
-- [ ] T061 [US3] Add network connectivity checks in nav_cli/browser/launcher.py
-- [ ] T062 [US3] Implement progressive error recovery strategies in main agent
-- [ ] T063 [US3] Add comprehensive help text and usage examples in nav_cli/cli.py
-- [ ] T064 [US3] Create troubleshooting documentation in CLI help system
-
-**Checkpoint**: All user stories should now be independently functional
+- [ ] T062 [P] [US3] Create error message templates in src/exceptions.py
+- [ ] T063 [P] [US3] Implement input validation with user-friendly messages in src/utils/validation.py
+- [ ] T064 [P] [US3] Create user suggestion system for common errors in src/tools/error_tools.py
+- [ ] T065 [P] [US3] Implement ambiguous location handling with user confirmation in src/tools/parsing_tools.py
+- [ ] T066 [P] [US3] Create Chrome/Chromium browser launch failure diagnostics in src/tools/browser_tools.py
+- [ ] T067 [P] [US3] Add network connectivity checks in src/tools/browser_tools.py
+- [ ] T068 [P] [US3] Implement graceful degradation for browser unavailability (per clarification)
+- [ ] T069 [P] [US3] Add comprehensive help text and usage examples in src/cli/commands.py
+- [ ] T070 [P] [US3] Create user guidance system for troubleshooting in src/utils/help.py
+- [ ] T071 [P] [US3] Implement structured error responses in src/models/results.py
 
 ---
 
 ## Phase 6: Polish & Cross-Cutting Concerns
 
-**Purpose**: Improvements that affect multiple user stories
+**Purpose**: Performance optimization, documentation, and deployment preparation
 
-- [ ] T065 [P] Update README.md with complete usage instructions
-- [ ] T066 [P] Code cleanup and refactoring across all modules
-- [ ] T067 Optimize performance to meet <3s target across all stories
-- [ ] T068 [P] Additional unit tests for edge cases in tests/unit/
-- [ ] T069 [P] Add comprehensive error logging and monitoring
-- [ ] T070 Security hardening (input sanitization, URL validation)
-- [ ] T071 [P] Run quickstart.md validation and update documentation
-- [ ] T072 [P] Add cross-platform compatibility testing
-- [ ] T073 Implement caching for parsed location results
-- [ ] T074 Add support for alternative mapping providers (Baidu, Tencent)
+### Performance and Optimization
+
+- [ ] T072 [P] Optimize Chrome/Chromium browser startup time (<3 seconds)
+- [ ] T073 [P] Implement location parsing result caching (60%+ hit rate target)
+- [ ] T074 [P] Optimize total execution time to meet 10-second target (per clarification)
+- [ ] T075 [P] Add performance profiling and monitoring in src/utils/performance.py
+- [ ] T076 [P] Implement memory usage optimization (<100MB footprint)
+
+### Documentation and Testing
+
+- [ ] T077 [P] Create comprehensive API documentation from contracts/api-contract.yaml
+- [ ] T078 [P] Add inline code documentation and docstrings
+- [ ] T079 [P] Create end-to-end test scenarios in tests/e2e/
+- [ ] T080 [P] Add cross-platform compatibility tests
+
+### Deployment and Distribution
+
+- [ ] T081 [P] Configure PyInstaller for standalone executable creation (per clarification)
+- [ ] T082 [P] Create build scripts for cross-platform distribution
+- [ ] T083 [P] Setup CI/CD pipeline with automated testing
+- [ ] T084 [P] Create installation and setup documentation
+- [ ] T085 [P] Prepare release artifacts for Windows, macOS, and Linux
+
+### Agent-Driven Architecture Compliance
+
+- [ ] T086 [P] Verify all tools return structured observations with success/failure status
+- [ ] T087 [P] Ensure no DOM locators in Agent logic (Constitution compliance)
+- [ ] T088 [P] Validate Agent autonomy in decision-making (no hardcoded if/else trees)
+- [ ] T089 [P] Confirm high-level tool abstraction (business vs technical operations)
 
 ---
 
-## Dependencies & Execution Order
-
-### Phase Dependencies
-
-- **Setup (Phase 1)**: No dependencies - can start immediately
-- **Foundational (Phase 2)**: Depends on Setup completion - BLOCKS all user stories
-- **User Stories (Phase 3+)**: All depend on Foundational phase completion
-  - User stories can then proceed in parallel (if staffed)
-  - Or sequentially in priority order (P1 → P2 → P3)
-- **Polish (Final Phase)**: Depends on all desired user stories being complete
+## Dependencies and Task Ordering
 
 ### User Story Dependencies
+- **US1 (P1)**: No dependencies - can be implemented immediately after Phase 2
+- **US2 (P2)**: Depends on US1 completion (extends parsing capabilities)
+- **US3 (P3)**: Depends on US1 and US2 (adds error handling to existing functionality)
 
-- **User Story 1 (P1)**: Can start after Foundational (Phase 2) - No dependencies on other stories
-- **User Story 2 (P2)**: Can start after Foundational (Phase 2) - Extends US1 parsing capabilities but independently testable
-- **User Story 3 (P3)**: Can start after Foundational (Phase 2) - Works across all stories but independently testable
+### Critical Path
+1. Phase 1 (Setup) → Phase 2 (Foundational) → **US1 (MVP)** → US2 → US3 → Phase 6 (Polish)
 
-### Within Each User Story
+### Parallel Execution Opportunities
 
-- Tests MUST be written and FAIL before implementation (TDD requirement)
-- Models before services/tools
-- Tools/Services before integration
-- Core implementation before CLI integration
-- Story complete before moving to next priority
+**Within User Story 1** (after T027, T028):
+- T030, T031, T032, T033 can be developed in parallel (different tools)
+- T022, T023, T024, T025, T026 can be developed in parallel (different models)
 
-### Parallel Opportunities
+**Within User Story 2** (after US1 completion):
+- T048, T049, T050, T051 can be developed in parallel (different location types)
 
-- All Setup tasks marked [P] can run in parallel
-- All Foundational tasks marked [P] can run in parallel (within Phase 2)
-- Once Foundational phase completes, all user stories can start in parallel (if team capacity allows)
-- All tests for a user story marked [P] can run in parallel
-- Models within a story marked [P] can run in parallel
-- Agent tools within a story marked [P] can run in parallel
-- Different user stories can be worked on in parallel by different team members
+**Within Phase 6**:
+- Most tasks can be executed in parallel (documentation, testing, deployment)
 
 ---
 
-## Parallel Example: User Story 1
+## Independent Test Criteria per User Story
 
-```bash
-# Launch all tests for User Story 1 together (TDD - write first!):
-Task: "Contract test for parsing API in tests/contract/test_parsing.py"
-Task: "Contract test for URL construction API in tests/contract/test_url_construction.py"
-Task: "Contract test for browser launch API in tests/contract/test_browser.py"
-Task: "Integration test for navigation flow in tests/integration/test_navigation_flow.py"
-Task: "Performance test for <3s response time in tests/integration/test_performance.py"
+### User Story 1 (Basic Navigation)
+- **Test Command**: `python -m src.cli.main "从北京到上海"`
+- **Success Criteria**: Chrome/Chromium browser opens with Gaode Maps showing Beijing-Shanghai route
+- **Performance**: <10 seconds total execution time
+- **Verification**: Correct URL construction and browser navigation
 
-# Launch all models for User Story 1 together:
-Task: "Implement NavigationQuery model in nav_cli/models/navigation.py"
-Task: "Implement LocationEntity model in nav_cli/models/navigation.py"
-Task: "Implement RouteParameters model in nav_cli/models/navigation.py"
-Task: "Implement BrowserSession model in nav_cli/models/browser.py"
-Task: "Implement ProcessingResult model in nav_cli/models/results.py"
+### User Story 2 (Multiple Location Formats)
+- **Test Commands**:
+  - `python -m src.cli.main "中关村到三里屯"`
+  - `python -m src.cli.main "清华大学到北京大学"`
+  - `python -m src.cli.main "东直门到西直门"`
+- **Success Criteria**: All location types correctly parsed and navigated
+- **Verification**: Location confidence scores and type identification
 
-# Launch all agent tools for User Story 1 together:
-Task: "Implement LocationParserTool in nav_cli/agents/tools/location_parser.py"
-Task: "Implement URLConstructorTool in nav_cli/agents/tools/url_constructor.py"
-Task: "Implement BrowserNavigationTool in nav_cli/agents/tools/browser_launcher.py"
-Task: "Implement ErrorRecoveryTool in nav_cli/agents/tools/error_recovery.py"
-```
+### User Story 3 (Error Handling)
+- **Test Scenarios**:
+  - Invalid input: `python -m src.cli.main ""`
+  - Ambiguous locations: `python -m src.cli.main "人民广场到火车站"`
+  - Browser unavailable: Simulate Chrome/Chromium missing
+- **Success Criteria**: User-friendly error messages with helpful suggestions
+- **Verification**: Error recovery and guidance system functionality
 
 ---
 
 ## Implementation Strategy
 
-### MVP First (User Story 1 Only)
-
-1. Complete Phase 1: Setup
-2. Complete Phase 2: Foundational (CRITICAL - blocks all stories)
-3. Complete Phase 3: User Story 1 (with TDD approach)
-4. **STOP and VALIDATE**: Test `python -m nav_cli "从北京到上海"` independently
-5. Demo MVP functionality
+### MVP Approach (User Story 1 First)
+1. **Focus on Core Value**: Get basic "从北京到上海" working with Chrome/Chromium
+2. **Minimum Viable Product**: Single user story delivers complete user value
+3. **Iterative Enhancement**: Add location formats and error handling in subsequent releases
+4. **Performance First**: Ensure 10-second target met from the beginning
 
 ### Incremental Delivery
+1. **Phase 1-2**: Foundation setup (blocking prerequisites)
+2. **Phase 3**: Deploy MVP (US1) - immediately useful for users
+3. **Phase 4**: Enhanced location support (US2) - broader applicability
+4. **Phase 5**: Robust error handling (US3) - improved user experience
+5. **Phase 6**: Production-ready with distribution
 
-1. Complete Setup + Foundational → Foundation ready
-2. Add User Story 1 → Test independently → MVP Demo
-3. Add User Story 2 → Test independently → Enhanced functionality
-4. Add User Story 3 → Test independently → Robust error handling
-5. Complete Polish phase → Production-ready tool
-
-### Parallel Team Strategy
-
-With multiple developers:
-
-1. Team completes Setup + Foundational together
-2. Once Foundational is done:
-   - Developer A: User Story 1 (core functionality)
-   - Developer B: User Story 2 (location formats)
-   - Developer C: User Story 3 (error handling)
-3. Stories complete and integrate independently
-4. Team works together on Polish phase
+### Quality Gates
+- **Each User Story**: Must pass independent test criteria
+- **Performance**: Must meet 10-second target (per clarification)
+- **Architecture**: Must comply with Agent-Driven Architecture constitution
+- **Browser**: Must support Chrome/Chromium only with proper error handling (per clarification)
 
 ---
 
-## Notes
+## Total Task Summary
 
-- [P] tasks = different files, no dependencies
-- [Story] label maps task to specific user story for traceability
-- Each user story should be independently completable and testable
-- TDD approach: Verify tests fail before implementing features
-- Commit after each task or logical group
-- Stop at any checkpoint to validate story independently
-- Performance target: <3s total response time (95th percentile)
-- Constitution requires CLI interface with TDD and modular architecture
-- Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence
+- **Total Tasks**: 89
+- **Phase 1 (Setup)**: 7 tasks
+- **Phase 2 (Foundational)**: 9 tasks
+- **User Story 1 (MVP)**: 26 tasks (including 5 tests)
+- **User Story 2**: 15 tasks (including 4 tests)
+- **User Story 3**: 14 tasks (including 4 tests)
+- **Phase 6 (Polish)**: 18 tasks
+
+**Parallel Opportunities**: ~60% of tasks can be executed in parallel within their phases
+**MVP Scope**: User Story 1 (32 tasks total) delivers complete, standalone value
+**Estimated Timeline**: 2-3 weeks for MVP, 4-5 weeks for full implementation

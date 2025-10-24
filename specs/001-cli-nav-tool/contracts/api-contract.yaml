@@ -717,10 +717,8 @@ components:
       type: string
       enum:
         - chromium
-        - firefox
-        - webkit
       default: chromium
-      description: Browser type
+      description: Browser type (Chrome/Chromium only per clarification)
 
     MapServiceProvider:
       type: string
