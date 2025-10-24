@@ -11,16 +11,17 @@ Based on comprehensive research into LangChain agents, Playwright automation, an
 
 ### 1. LangChain Architecture Decision
 
-**Decision**: Use LangGraph's `create_react_agent` with gpt-4o-mini model
+**Decision**: Use LangGraph's `create_react_agent` with Gemini 2.5 Flash model
 
 **Rationale**:
 - ReAct agents provide deterministic tool selection essential for CLI performance
-- gpt-4o-mini offers optimal speed/cost balance (~2x faster than gpt-4)
+- Gemini 2.5 Flash offers optimal speed/cost balance with excellent performance
 - Built-in streaming capabilities enhance CLI user experience
 - Strong error recovery mechanisms for tool failures
+- Large context window supports complex Chinese navigation queries
 
 **Alternatives considered**:
-- Standard OpenAI functions agent (less deterministic)
+- OpenAI GPT models (higher cost, smaller context window)
 - Custom agent implementation (higher complexity, maintenance overhead)
 - Direct prompt-based parsing (less flexible for edge cases)
 
@@ -65,7 +66,7 @@ Based on comprehensive research into LangChain agents, Playwright automation, an
 ### Optimization Strategies Identified
 1. **Browser Warm-up**: Prelaunch browsers for <1s response time
 2. **Location Caching**: Cache parsed location results for 60%+ hit rate
-3. **Model Selection**: Use gpt-4o-mini for 2x speed improvement
+3. **Model Selection**: Use Gemini 2.5 Flash for optimal speed/cost balance and large context window
 4. **Async Execution**: Parallelize independent tool operations
 
 ## Technical Architecture Findings
@@ -182,7 +183,7 @@ https://uri.amap.com/navigation?from={encoded_origin}&to={encoded_destination}&m
 - **PaddleNLP**: Chinese NER for location extraction
 - **Jieba**: Chinese word segmentation
 - **Typer**: CLI interface framework
-- **OpenAI**: LLM provider (or Anthropic Claude)
+- **Google Generative AI**: LLM provider (Gemini 2.5 Flash)
 
 ### Performance Impact Assessment
 - **Cold Start**: ~3s (browser launch + agent initialization)
@@ -194,12 +195,12 @@ https://uri.amap.com/navigation?from={encoded_origin}&to={encoded_destination}&m
 
 ### High-Risk Areas
 1. **Performance**: Browser launch time variance across systems
-2. **Dependencies**: External LLM API reliability
+2. **Dependencies**: External Google AI API reliability
 3. **Chinese NLP**: Accuracy for edge cases and regional dialects
 
 ### Mitigation Strategies
 1. **Performance**: Browser pre-warming and connection pooling
-2. **Dependencies**: Multiple LLM provider fallbacks
+2. **Dependencies**: Multiple LLM provider fallbacks (including OpenAI/Claude as backup)
 3. **NLP**: Hybrid approach with multiple parsing strategies
 
 ## Conclusion
@@ -207,7 +208,7 @@ https://uri.amap.com/navigation?from={encoded_origin}&to={encoded_destination}&m
 The research confirms that the LangChain + Playwright architecture is well-suited for the CLI Navigation Tool requirements. The proposed approach can meet the sub-3 second performance target while providing robust error handling and cross-platform compatibility.
 
 Key success factors:
-- Use gpt-4o-mini for optimal speed/cost balance
+- Use Gemini 2.5 Flash for optimal speed/cost balance and large context window
 - Implement browser connection pooling for performance
 - Hybrid NLP approach for Chinese location accuracy
 - Comprehensive error handling at multiple layers

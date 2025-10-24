@@ -12,7 +12,7 @@ Build a CLI tool that accepts natural language navigation queries (e.g., "从北
 ## Technical Context
 
 **Language/Version**: Python 3.11+
-**Primary Dependencies**: LangChain, Playwright, LLM Provider (OpenAI/Anthropic), typer
+**Primary Dependencies**: LangChain, Playwright, Gemini 2.5 Flash (Google), typer
 **Storage**: Local configuration files (JSON/YAML)
 **Testing**: pytest, playwright testing tools, mock agents
 **Target Platform**: Cross-platform CLI (Linux, macOS, Windows)
@@ -48,7 +48,7 @@ Build a CLI tool that accepts natural language navigation queries (e.g., "从北
 **Gate Analysis**:
 1. **CLI Interface**: Typer-based CLI with stdin/stdout protocol, JSON and human-readable output support
 2. **Agent Architecture**: LangChain ReAct agent with high-level tools (LocationParserTool, BrowserNavigationTool, URLConstructorTool)
-3. **Performance Targets**: Research confirms <3s total time achievable with browser pooling and gpt-4o-mini
+3. **Performance Targets**: Research confirms <3s total time achievable with browser pooling and Gemini 2.5 Flash
 4. **Error Handling**: Multi-layer error recovery (agent, tool, system levels) with user-friendly messages
 5. **Testing Strategy**: Comprehensive test suite (unit, integration, contract) with 90%+ coverage requirement
 
