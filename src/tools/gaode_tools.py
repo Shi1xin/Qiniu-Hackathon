@@ -189,10 +189,11 @@ class GaodeMapsTools:
         return f"{base_url}?{urlencode(params)}"
 
     def _encode_location(self, location: str) -> str:
-        """Encode location name for URL parameter."""
+        """Prepare location name for URL parameter."""
         # Validate and sanitize location parameter
-        clean_location = validate_url_parameter(location)
-        return quote(clean_location, safe='')
+        from src.utils.validation import sanitize_input
+        clean_location = sanitize_input(location)
+        return clean_location
 
     def search_location(
         self,

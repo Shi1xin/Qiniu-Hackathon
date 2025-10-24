@@ -103,12 +103,44 @@ class NavigationAgent:
 请根据用户输入智能选择合适的工具组合来完成导航任务。
 """
 
+        # Get LLM based on configuration
+        llm = self._get_llm()
+
         return Agent.from_llm_and_tools(
-            llm=None,  # Will be set based on config
+            llm=llm,
             tools=self.tools,
             system_prompt=system_prompt,
             verbose=self.verbose
         )
+
+    def _get_llm(self):
+        """Get LLM based on configuration."""
+        provider = self.config.get_primary_llm_provider()
+
+        if provider == "google":
+            from langchain_google_genai import ChatGoogleGenerativeAI
+            return ChatGoogleGenerativeAI(
+                model="gemini-pro",
+                google_api_key=self.config.google_api_key,
+                temperature=0.1
+            )
+        elif provider == "openai":
+            from langchain_openai import ChatOpenAI
+            return ChatOpenAI(
+                model="gpt-3.5-turbo",
+                openai_api_key=self.config.openai_api_key,
+                temperature=0.1
+            )
+        elif provider == "anthropic":
+            from langchain_anthropic import ChatAnthropic
+            return ChatAnthropic(
+                model="claude-3-haiku-20240307",
+                anthropic_api_key=self.config.anthropic_api_key,
+                temperature=0.1
+            )
+        else:
+            # Fallback to a basic rule-based approach if no LLM is configured
+            return None
 
     def _tool_parse_navigation_query(self, query: str) -> Dict[str, Any]:
         """Tool wrapper for parsing navigation query."""

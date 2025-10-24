@@ -219,3 +219,4 @@ performance_logs/
 debug_logs/
 navigation_cache/
 browser_profiles/
+.env

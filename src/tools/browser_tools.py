@@ -8,6 +8,7 @@ pooling capabilities for the CLI Navigation Tool.
 import asyncio
 import time
 from typing import Dict, Optional, Any, List
+from pathlib import Path
 from playwright.async_api import async_playwright, Browser, BrowserContext, Page
 
 from src.models.browser import BrowserSession, BrowserType, BrowserStatus, BrowserPool
@@ -57,10 +58,16 @@ class PlaywrightBrowserManager:
                 self.context = await self.browser.new_context(**context_options)
 
                 # Create browser session
+                if window_size:
+                    session_window_size = window_size
+                else:
+                    width, height = self.config.get_window_dimensions()
+                    session_window_size = {"width": width, "height": height}
+
                 session = BrowserSession(
                     browser_type=BrowserType.CHROMIUM,
                     headless=headless,
-                    window_size=window_size or self.config.get_window_dimensions()
+                    window_size=session_window_size
                 )
 
                 session.mark_ready()
@@ -203,7 +210,7 @@ class PlaywrightBrowserManager:
             launch_args = self._get_launch_arguments()
 
             if browser_type == "chromium":
-                browser = await playwright.chromium.launch(**launch_args)
+                browser = await playwright.chromium.launch(args=launch_args)
             else:
                 raise BrowserNotAvailableError(f"Browser '{browser_type}' not supported")
 
@@ -215,53 +222,56 @@ class PlaywrightBrowserManager:
                 reason=f"Failed to launch {browser_type}: {str(e)}"
             )
 
-    def _get_launch_arguments(self) -> Dict[str, Any]:
+    def _get_launch_arguments(self) -> List[str]:
         """Get browser launch arguments for optimal performance."""
-        args = {
+        args = [
             # Performance optimizations
-            "--no-sandbox": True,  # Disable sandbox for faster startup
-            "--disable-dev-shm-usage": True,  # Use /tmp instead of /dev/shm
-            "--disable-gpu": True,  # Disable GPU for faster startup
-            "--disable-background-timer-throttling": True,  # Disable background timer throttling
-            "--disable-backgrounding-occluded-windows": True,  # Disable backgrounding
-            "--disable-renderer-backgrounding": True,  # Disable renderer backgrounding
-            "--disable-features": "TranslateUI,BlinkGenPropertyTrees",  # Disable unused features
+            "--no-sandbox",  # Disable sandbox for faster startup
+            "--disable-dev-shm-usage",  # Use /tmp instead of /dev/shm
+            "--disable-gpu",  # Disable GPU for faster startup
+            "--disable-background-timer-throttling",  # Disable background timer throttling
+            "--disable-backgrounding-occluded-windows",  # Disable backgrounding
+            "--disable-renderer-backgrounding",  # Disable renderer backgrounding
+            "--disable-features=TranslateUI,BlinkGenPropertyTrees",  # Disable unused features
 
             # Memory optimizations
-            "--memory-pressure-off": True,
-            "--max_old_space_size": 512,
-            "--optimize-for-size": True,
-
-            # Security/privacy (for better compatibility)
-            "--disable-web-security": False,  # Keep security for safety
-            "--disable-features": "VizDisplayCompositor",  # Disable some features
+            "--memory-pressure-off",
+            "--max_old_space_size=512",
+            "--optimize-for-size",
 
             # User agent
-            "--user-agent": self._get_user_agent()
-        }
+            f"--user-agent={self._get_user_agent()}"
+        ]
 
         # Platform-specific arguments
         import platform
         if platform.system() == "Linux":
-            args.update({
-                "--disable-gpu-compositing": True,
-                "--disable-accelerated-2d-canvas": True
-            })
+            args.extend([
+                "--disable-gpu-compositing",
+                "--disable-accelerated-2d-canvas"
+            ])
         elif platform.system() == "Darwin":  # macOS
-            args.update({
-                "--disable-features": "CanvasOtpRasterization"
-            })
+            args.extend([
+                "--disable-features=CanvasOtpRasterization"
+            ])
         elif platform.system() == "Windows":
-            args.update({
-                "--disable-gpu-process-crash-dump": True
-            })
+            args.extend([
+                "--disable-gpu-process-crash-dump"
+            ])
 
         return args
 
     def _get_context_options(self, headless: bool, window_size: Optional[Dict[str, int]]) -> Dict[str, Any]:
         """Get browser context options."""
+        # Ensure viewport has correct format
+        if window_size:
+            viewport = window_size
+        else:
+            width, height = self.config.get_window_dimensions()
+            viewport = {"width": width, "height": height}
+
         options = {
-            "viewport": window_size or self.config.get_window_dimensions(),
+            "viewport": viewport,
             "user_agent": self._get_user_agent(),
             "java_script_enabled": True,
             "ignore_https_errors": False,
@@ -310,12 +320,31 @@ class PlaywrightBrowserManager:
 
             # Check for browser executable
             browser_names = ["chromium-browser", "chromium", "google-chrome", "chrome"]
+            browser_paths = [
+                "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+                "/Applications/Chromium.app/Contents/MacOS/Chromium",
+                "/usr/bin/google-chrome",
+                "/usr/bin/chromium",
+                "/usr/bin/chromium-browser"
+            ]
 
             available_browser = None
+            browser_path = None
+
+            # Check PATH first
             for browser_name in browser_names:
                 if shutil.which(browser_name):
                     available_browser = browser_name
+                    browser_path = shutil.which(browser_name)
                     break
+
+            # Check common macOS locations
+            if not available_browser and platform.system() == "Darwin":
+                for path in browser_paths:
+                    if Path(path).exists():
+                        available_browser = "chrome"
+                        browser_path = path
+                        break
 
             if not available_browser:
                 return {
@@ -341,7 +370,7 @@ class PlaywrightBrowserManager:
                     "available": True,
                     "browser": available_browser,
                     "version": version,
-                    "path": shutil.which(available_browser)
+                    "path": browser_path
                 }
 
             except Exception:
@@ -349,7 +378,7 @@ class PlaywrightBrowserManager:
                     "available": True,
                     "browser": available_browser,
                     "version": "Unknown",
-                    "path": shutil.which(available_browser)
+                    "path": browser_path
                 }
 
         except Exception as e:

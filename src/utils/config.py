@@ -7,7 +7,8 @@ support and validation.
 
 from typing import Optional, List, Literal
 from pathlib import Path
-from pydantic import BaseSettings, Field, validator
+from pydantic_settings import BaseSettings
+from pydantic import Field, field_validator
 from pydantic.types import PositiveInt
 
 
@@ -64,13 +65,15 @@ class NavigationConfig(BaseSettings):
     preferred_city: Optional[str] = Field(None, env="NAV_TOOL_PREFERRED_CITY")
     language: Literal["zh-CN", "en-US"] = Field("zh-CN", env="NAV_TOOL_LANGUAGE")
 
-    class Config:
-        """Pydantic configuration."""
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "case_sensitive": False,
+        "extra": "allow"  # Allow extra fields for environment variables
+    }
 
-    @validator('window_size')
+    @field_validator('window_size')
+    @classmethod
     def parse_window_size(cls, v):
         """Parse window size string 'width,height' into tuple."""
         try:
@@ -83,14 +86,16 @@ class NavigationConfig(BaseSettings):
         except (ValueError, AttributeError):
             raise ValueError("Window size must be in format 'width,height' (e.g., '1280,800')")
 
-    @validator('profile_dir', 'cache_dir')
+    @field_validator('profile_dir', 'cache_dir')
+    @classmethod
     def create_directories(cls, v):
         """Ensure directories exist."""
         if v:
             Path(v).mkdir(parents=True, exist_ok=True)
         return v
 
-    @validator('timeout_ms', 'browser_timeout_ms', 'network_timeout_ms')
+    @field_validator('timeout_ms', 'browser_timeout_ms', 'network_timeout_ms')
+    @classmethod
     def validate_timeouts(cls, v):
         """Ensure timeout values are reasonable."""
         if v > 60000:  # 1 minute
@@ -99,14 +104,16 @@ class NavigationConfig(BaseSettings):
             raise ValueError("Timeout values should be at least 1 second")
         return v
 
-    @validator('fallback_provider')
-    def different_fallback_provider(cls, v, values):
+    @field_validator('fallback_provider')
+    @classmethod
+    def different_fallback_provider(cls, v, info):
         """Ensure fallback provider is different from primary."""
-        if 'map_provider' in values and v == values['map_provider']:
+        if info.data and 'map_provider' in info.data and v == info.data['map_provider']:
             raise ValueError("Fallback provider must be different from primary provider")
         return v
 
-    @validator('cache_ttl')
+    @field_validator('cache_ttl')
+    @classmethod
     def reasonable_cache_ttl(cls, v):
         """Ensure cache TTL is reasonable."""
         if v > 86400:  # 24 hours

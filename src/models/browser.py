@@ -178,8 +178,8 @@ class BrowserPool(BaseModel):
     session_timeout_minutes: int = Field(5, ge=1, le=60, description="Session timeout in minutes")
     enable_connection_pooling: bool = Field(True, description="Enable connection pooling")
 
-    def __init__(self, **data):
-        """Initialize browser pool."""
-        super().__init__(**data)
-        self.active_sessions: Dict[str, BrowserSession] = {}
-        self.available_sessions: list[str] = []
+    # Dynamic fields (not in Pydantic model)
+    active_sessions: Dict[str, BrowserSession] = {}
+    available_sessions: list[str] = []
+
+    model_config = {"extra": "allow"}  # Allow dynamic fields

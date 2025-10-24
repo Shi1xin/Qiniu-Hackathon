@@ -91,7 +91,7 @@ def main(
         validated_query = _validate_and_sanitize_input(query)
 
         # Process navigation request using agent
-        result = asyncio.run(_process_navigation_request(validated_query))
+        result = asyncio.run(_process_navigation_request(validated_query, browser, headless, timeout, service))
 
         # Display results
         _display_results(result)
@@ -214,7 +214,7 @@ def _validate_and_sanitize_input(query: str) -> str:
     return sanitized
 
 
-def _process_navigation_request(
+async def _process_navigation_request(
     query: str,
     browser: str,
     headless: bool,
@@ -247,20 +247,59 @@ def _process_navigation_request(
         }
 
         try:
-            # Parse locations (this would be implemented with actual parsing logic)
+            # Parse locations using validation tools
+            from src.utils.validation import validate_navigation_input
+            validation_result = validate_navigation_input(query)
+
+            if not validation_result.get("valid", False):
+                raise NavigationToolError(
+                    message="Failed to parse navigation query",
+                    error_code="VALIDATION_FAILED",
+                    suggestions=["Check your query format", "Ensure locations are valid"]
+                )
+
+            # Extract parsed information
+            origin = validation_result.get("origin")
+            destination = validation_result.get("destination")
+
             progress.update(parse_task, description="✓ Locations parsed")
 
-            # Build URL (this would be implemented with actual URL building)
+            # Build URL using Gaode Maps tools
+            from src.tools.gaode_tools import construct_navigation_url
+            navigation_url = construct_navigation_url(
+                origin_name=origin,
+                destination_name=destination,
+                transport_mode="car",
+                avoid_tolls=False,
+                avoid_highways=False
+            )
+
             progress.update(parse_task, completed=True)
             progress.update(url_task, description="✓ Navigation URL built")
 
-            # Launch browser (this would be implemented with actual browser logic)
+            # Launch browser and navigate to URL
+            from src.tools.browser_tools import launch_browser_with_route
+            browser_result = await launch_browser_with_route(navigation_url, browser)
+
+            if not browser_result.get("success", False):
+                raise NavigationToolError(
+                    message="Failed to launch browser",
+                    error_code="BROWSER_LAUNCH_FAILED",
+                    suggestions=["Check browser installation", "Try running without headless mode"]
+                )
+
+            # Update result with actual information
+            result.update({
+                "origin": origin,
+                "destination": destination,
+                "url": navigation_url,
+                "browser_session": browser_result.get("session_id"),
+                "success": True,
+                "total_time_ms": browser_result.get("launch_time_ms", 0) + browser_result.get("navigation_time_ms", 0)
+            })
+
             progress.update(url_task, completed=True)
             progress.update(browser_task, description="✓ Browser launched successfully")
-
-            result["success"] = True
-            result["total_time_ms"] = 5000  # Placeholder
-
             progress.update(browser_task, completed=True)
 
         except Exception as e:

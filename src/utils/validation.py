@@ -21,12 +21,13 @@ class NavigationValidator:
 
     # Navigation query patterns
     NAVIGATION_PATTERNS = [
-        r'从(.+?)到(.+?)',  # 从A到B
-        r'(.+?)到(.+?)',   # A到B (simplified)
-        r'从(.+?)前往(.+?)', # 从A前往B
-        r'(.+?)前往(.+?)',  # A前往B
-        r'(.+?)去(.+?)',    # A去B
-        r'(.+?)到(.+?)怎么走', # A到B怎么走
+        r'从(.+?)到(.+?)(?:\s|$)',  # 从A到B (with word boundary)
+        r'从(.+?)到(.+?)$',  # 从A到B (end of string)
+        r'^(.+?)到(.+?)(?:\s|$)',  # A到B (start of string with word boundary)
+        r'从(.+?)前往(.+?)(?:\s|$)', # 从A前往B
+        r'^(.+?)前往(.+?)(?:\s|$)',  # A前往B
+        r'^(.+?)去(.+?)(?:\s|$)',    # A去B
+        r'^(.+?)到(.+?)怎么走$', # A到B怎么走
     ]
 
     # Location type indicators
@@ -396,7 +397,9 @@ class NavigationValidator:
             )
 
         # Contains only navigation words, no locations
-        if len(origin) < 2 or len(destination) < 2:
+        # Allow major cities even if they're short
+        major_cities = {'北京', '上海', '广州', '深圳', '天津', '重庆'}
+        if (len(origin) < 2 and origin not in major_cities) or (len(destination) < 2 and destination not in major_cities):
             raise ValidationError(
                 field_name="query",
                 value=input_text,
