@@ -6,6 +6,7 @@ rich formatting and user-friendly error handling.
 """
 
 import sys
+import asyncio
 import typer
 from typing import Optional
 from pathlib import Path
@@ -19,6 +20,7 @@ from src.utils.config import get_config, load_config
 from src.utils.logging import setup_logging, get_logger, log_user_message
 from src.utils.validation import validate_navigation_input, sanitize_input
 from src.exceptions import NavigationToolError, handle_unexpected_error
+from src.agents.navigation_agent import process_navigation_query, get_navigation_agent
 
 
 # Initialize Typer app
@@ -88,14 +90,8 @@ def main(
         # Validate input
         validated_query = _validate_and_sanitize_input(query)
 
-        # Process navigation request
-        result = _process_navigation_request(
-            validated_query,
-            browser=browser,
-            headless=headless,
-            timeout=timeout,
-            service=service
-        )
+        # Process navigation request using agent
+        result = asyncio.run(_process_navigation_request(validated_query))
 
         # Display results
         _display_results(result)
