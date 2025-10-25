@@ -1,12 +1,23 @@
 import Cocoa
 import QuartzCore
 
+protocol VoiceInputWindowDelegate: AnyObject {
+    func voiceInputWindowDidRequestStartRecording(_ window: VoiceInputWindow)
+    func voiceInputWindowDidRequestStopRecording(_ window: VoiceInputWindow)
+    func voiceInputWindowDidRequestCancel(_ window: VoiceInputWindow)
+}
+
 class VoiceInputWindow: NSObject {
+    weak var delegate: VoiceInputWindowDelegate?
+
     private var window: NSWindow!
     private var titleLabel: NSTextField!
     private var statusLabel: NSTextField!
+    private var recordButton: NSButton!
     private var cancelButton: NSButton!
     private var pulseLayer: CAShapeLayer!
+    private var outsideEventMonitor: Any?
+    private var isRecording = false
 
     override init() {
         super.init()
@@ -47,16 +58,21 @@ class VoiceInputWindow: NSObject {
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
 
         // 状态标签
-        statusLabel = NSTextField(labelWithString: "准备开始录音...")
+    statusLabel = NSTextField(labelWithString: "点击下方按钮开始录音")
         statusLabel.font = NSFont.systemFont(ofSize: 14)
         statusLabel.textColor = NSColor.secondaryLabelColor
         statusLabel.alignment = .center
         statusLabel.translatesAutoresizingMaskIntoConstraints = false
 
-        // 取消按钮
-        cancelButton = NSButton(title: "取消", target: self, action: #selector(cancelClicked))
-        cancelButton.bezelStyle = .rounded
-        cancelButton.translatesAutoresizingMaskIntoConstraints = false
+    // 录音按钮
+    recordButton = NSButton(title: "开始录音", target: self, action: #selector(recordButtonClicked))
+    recordButton.bezelStyle = .rounded
+    recordButton.translatesAutoresizingMaskIntoConstraints = false
+
+    // 取消按钮
+    cancelButton = NSButton(title: "取消", target: self, action: #selector(cancelClicked))
+    cancelButton.bezelStyle = .rounded
+    cancelButton.translatesAutoresizingMaskIntoConstraints = false
 
         // 音频波形视图
         let waveformView = NSView()
@@ -69,10 +85,16 @@ class VoiceInputWindow: NSObject {
         setupPulseAnimation(in: waveformView)
 
         // 添加子视图
-        contentView.addSubview(titleLabel)
-        contentView.addSubview(statusLabel)
-        contentView.addSubview(waveformView)
-        contentView.addSubview(cancelButton)
+    let buttonStack = NSStackView(views: [recordButton, cancelButton])
+    buttonStack.orientation = .horizontal
+    buttonStack.alignment = .centerY
+    buttonStack.spacing = 12
+    buttonStack.translatesAutoresizingMaskIntoConstraints = false
+
+    contentView.addSubview(titleLabel)
+    contentView.addSubview(statusLabel)
+    contentView.addSubview(waveformView)
+    contentView.addSubview(buttonStack)
 
         window.contentView = contentView
 
@@ -95,10 +117,12 @@ class VoiceInputWindow: NSObject {
             statusLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -20),
 
             // 取消按钮
-            cancelButton.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -20),
-            cancelButton.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+            recordButton.heightAnchor.constraint(equalToConstant: 36),
+            recordButton.widthAnchor.constraint(equalToConstant: 140),
             cancelButton.heightAnchor.constraint(equalToConstant: 32),
-            cancelButton.widthAnchor.constraint(equalToConstant: 80)
+            cancelButton.widthAnchor.constraint(equalToConstant: 80),
+            buttonStack.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+            buttonStack.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -20)
         ])
     }
 
@@ -127,7 +151,9 @@ class VoiceInputWindow: NSObject {
     }
 
     func showWindow(at statusItem: NSStatusItem) {
-        updateStatus("准备开始录音...")
+    updateStatus("点击下方按钮开始录音")
+        setRecordingState(false)
+        setRecordButtonEnabled(true)
 
         // 计算窗口位置，显示在状态栏图标附近
         if let button = statusItem.button, let screen = NSScreen.main {
@@ -163,7 +189,10 @@ class VoiceInputWindow: NSObject {
         }
 
         // 添加全局点击监听器，点击窗口外部时关闭窗口
-        NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
+        if let monitor = outsideEventMonitor {
+            NSEvent.removeMonitor(monitor)
+        }
+        outsideEventMonitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown) { [weak self] _ in
             DispatchQueue.main.async {
                 self?.hideWindow()
             }
@@ -171,11 +200,18 @@ class VoiceInputWindow: NSObject {
     }
 
     func hideWindow() {
+        if let monitor = outsideEventMonitor {
+            NSEvent.removeMonitor(monitor)
+            outsideEventMonitor = nil
+        }
+
         // 添加退出动画
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.3
             context.completionHandler = {
                 self.window.orderOut(nil)
+                self.setRecordingState(false)
+                self.setRecordButtonEnabled(true)
             }
             window.animator().alphaValue = 0.0
         }
@@ -198,6 +234,25 @@ class VoiceInputWindow: NSObject {
     }
 
     @objc private func cancelClicked() {
-        hideWindow()
+        delegate?.voiceInputWindowDidRequestCancel(self)
+    }
+
+    @objc private func recordButtonClicked() {
+        recordButton.isEnabled = false
+        if isRecording {
+            delegate?.voiceInputWindowDidRequestStopRecording(self)
+        } else {
+            delegate?.voiceInputWindowDidRequestStartRecording(self)
+        }
+    }
+
+    func setRecordingState(_ recording: Bool) {
+        isRecording = recording
+        recordButton.title = recording ? "停止录音" : "开始录音"
+        recordButton.contentTintColor = recording ? NSColor.systemRed : nil
+    }
+
+    func setRecordButtonEnabled(_ enabled: Bool) {
+        recordButton.isEnabled = enabled
     }
 }

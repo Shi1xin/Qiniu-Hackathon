@@ -7,6 +7,7 @@ class VoiceMenuBarApp: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var voiceRecognizer: VoiceRecognizer!
     private var voiceInputWindow: VoiceInputWindow!
+    private var isRecording = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // 设置应用为后台应用，不显示在Dock中
@@ -21,6 +22,7 @@ class VoiceMenuBarApp: NSObject, NSApplicationDelegate {
 
         // 初始化语音输入窗口
         voiceInputWindow = VoiceInputWindow()
+        voiceInputWindow.delegate = self
     }
 
     private func setupStatusBarItem() {
@@ -75,11 +77,13 @@ class VoiceMenuBarApp: NSObject, NSApplicationDelegate {
     }
 
     @objc private func statusBarClicked() {
-        // 请求语音识别权限并开始录音
-        voiceRecognizer.requestPermissionsAndStartRecording()
-
-        // 显示语音输入提示窗口
         voiceInputWindow.showWindow(at: statusItem)
+
+        if isRecording {
+            voiceInputWindow.setRecordingState(true)
+            voiceInputWindow.updateStatus("正在录音...")
+            voiceInputWindow.setRecordButtonEnabled(true)
+        }
     }
 }
 
@@ -107,11 +111,17 @@ extension VoiceMenuBarApp: VoiceRecognizerDelegate {
 
     func voiceRecognizerDidStartRecording(_ recognizer: VoiceRecognizer) {
         print("开始录音")
+        isRecording = true
+        voiceInputWindow.setRecordingState(true)
+        voiceInputWindow.setRecordButtonEnabled(true)
         voiceInputWindow.updateStatus("正在录音...")
     }
 
     func voiceRecognizerDidStopRecording(_ recognizer: VoiceRecognizer) {
         print("停止录音")
+        isRecording = false
+        voiceInputWindow.setRecordingState(false)
+        voiceInputWindow.setRecordButtonEnabled(false)
         voiceInputWindow.updateStatus("正在识别...")
     }
 
@@ -178,6 +188,41 @@ extension VoiceMenuBarApp: VoiceRecognizerDelegate {
         alert.alertStyle = .critical
         alert.addButton(withTitle: "确定")
         alert.runModal()
+    }
+}
+
+// MARK: - VoiceInputWindowDelegate
+extension VoiceMenuBarApp: VoiceInputWindowDelegate {
+    func voiceInputWindowDidRequestStartRecording(_ window: VoiceInputWindow) {
+        guard !isRecording else {
+            voiceInputWindow.setRecordButtonEnabled(true)
+            return
+        }
+
+        voiceInputWindow.updateStatus("正在准备录音...")
+        voiceRecognizer.requestPermissionsAndStartRecording()
+    }
+
+    func voiceInputWindowDidRequestStopRecording(_ window: VoiceInputWindow) {
+        guard isRecording else {
+            voiceInputWindow.setRecordButtonEnabled(true)
+            return
+        }
+
+        voiceInputWindow.updateStatus("正在停止录音...")
+        voiceInputWindow.setRecordButtonEnabled(false)
+        voiceRecognizer.stopRecording(dueToCancellation: false)
+    }
+
+    func voiceInputWindowDidRequestCancel(_ window: VoiceInputWindow) {
+        if isRecording {
+            voiceRecognizer.stopRecording()
+        }
+
+        isRecording = false
+        voiceInputWindow.setRecordingState(false)
+        voiceInputWindow.setRecordButtonEnabled(true)
+        voiceInputWindow.hideWindow()
     }
 }
 
