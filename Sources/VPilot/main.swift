@@ -9,8 +9,17 @@ class VPilotApp: NSObject, NSApplicationDelegate {
     private var voiceInputWindow: VoiceInputWindow!
     private var isRecording = false
     private let speechSynthesizer = AVSpeechSynthesizer()
+    private var isSpeechEnabled = true
+    private lazy var speechToggleMenuItem: NSMenuItem = {
+        let item = NSMenuItem(title: "语音播报", action: #selector(toggleSpeechOutput(_:)), keyEquivalent: "")
+        item.target = self
+        item.state = .on
+        return item
+    }()
     private lazy var statusMenu: NSMenu = {
         let menu = NSMenu()
+        menu.addItem(speechToggleMenuItem)
+        menu.addItem(NSMenuItem.separator())
         let quitItem = NSMenuItem(title: "退出", action: #selector(quitApplication), keyEquivalent: "")
         quitItem.target = self
         menu.addItem(quitItem)
@@ -93,6 +102,7 @@ class VPilotApp: NSObject, NSApplicationDelegate {
 
         if isContextClick {
             guard let button = statusItem.button else { return }
+            updateStatusMenuItems()
             NSMenu.popUpContextMenu(statusMenu, with: event, for: button)
             return
         }
@@ -108,6 +118,19 @@ class VPilotApp: NSObject, NSApplicationDelegate {
 
     @objc private func quitApplication() {
         NSApp.terminate(nil)
+    }
+
+    private func updateStatusMenuItems() {
+        speechToggleMenuItem.state = isSpeechEnabled ? .on : .off
+    }
+
+    @objc private func toggleSpeechOutput(_ sender: NSMenuItem) {
+        isSpeechEnabled.toggle()
+        updateStatusMenuItems()
+
+        if !isSpeechEnabled, speechSynthesizer.isSpeaking {
+            speechSynthesizer.stopSpeaking(at: .immediate)
+        }
     }
 }
 
@@ -243,6 +266,8 @@ extension VPilotApp: VoiceRecognizerDelegate {
     }
 
     private func speakResult(_ message: String) {
+        guard isSpeechEnabled else { return }
+
         let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
