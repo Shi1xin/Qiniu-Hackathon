@@ -1,0 +1,188 @@
+import Cocoa
+import Speech
+import AVFoundation
+import UserNotifications
+
+class VoiceMenuBarApp: NSObject, NSApplicationDelegate {
+    private var statusItem: NSStatusItem!
+    private var voiceRecognizer: VoiceRecognizer!
+    private var voiceInputWindow: VoiceInputWindow!
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // 设置应用为后台应用，不显示在Dock中
+        NSApp.setActivationPolicy(.accessory)
+
+        // 创建状态栏项目
+        setupStatusBarItem()
+
+        // 初始化语音识别器
+        voiceRecognizer = VoiceRecognizer()
+        voiceRecognizer.delegate = self
+
+        // 初始化语音输入窗口
+        voiceInputWindow = VoiceInputWindow()
+    }
+
+    private func setupStatusBarItem() {
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+
+        if let button = statusItem.button {
+            // 创建一个简单的图标
+            let image = createMicrophoneIcon()
+            button.image = image
+            button.action = #selector(statusBarClicked)
+            button.target = self
+        }
+    }
+
+    private func createMicrophoneIcon() -> NSImage {
+        let size = NSSize(width: 18, height: 18)
+        let image = NSImage(size: size)
+
+        image.lockFocus()
+
+        // 绘制简单的麦克风图标
+        let path = NSBezierPath()
+
+        // 麦克风主体
+        path.move(to: NSPoint(x: size.width * 0.4, y: size.height * 0.2))
+        path.line(to: NSPoint(x: size.width * 0.4, y: size.height * 0.6))
+        path.curve(to: NSPoint(x: size.width * 0.6, y: size.height * 0.6),
+                  controlPoint1: NSPoint(x: size.width * 0.4, y: size.height * 0.7),
+                  controlPoint2: NSPoint(x: size.width * 0.6, y: size.height * 0.7))
+        path.line(to: NSPoint(x: size.width * 0.6, y: size.height * 0.2))
+        path.curve(to: NSPoint(x: size.width * 0.4, y: size.height * 0.2),
+                  controlPoint1: NSPoint(x: size.width * 0.6, y: size.height * 0.1),
+                  controlPoint2: NSPoint(x: size.width * 0.4, y: size.height * 0.1))
+
+        NSColor.systemBlue.setFill()
+        path.fill()
+
+        // 麦克风支架
+        let standPath = NSBezierPath()
+        standPath.move(to: NSPoint(x: size.width * 0.35, y: size.height * 0.75))
+        standPath.line(to: NSPoint(x: size.width * 0.65, y: size.height * 0.75))
+        standPath.line(to: NSPoint(x: size.width * 0.6, y: size.height * 0.85))
+        standPath.line(to: NSPoint(x: size.width * 0.4, y: size.height * 0.85))
+        standPath.close()
+
+        NSColor.systemBlue.setFill()
+        standPath.fill()
+
+        image.unlockFocus()
+
+        return image
+    }
+
+    @objc private func statusBarClicked() {
+        // 请求语音识别权限并开始录音
+        voiceRecognizer.requestPermissionsAndStartRecording()
+
+        // 显示语音输入提示窗口
+        voiceInputWindow.showWindow()
+    }
+}
+
+// MARK: - VoiceRecognizerDelegate
+extension VoiceMenuBarApp: VoiceRecognizerDelegate {
+    func voiceRecognizer(_ recognizer: VoiceRecognizer, didReceiveText text: String) {
+        print("识别到的文本: \(text)")
+
+        // 隐藏提示窗口
+        voiceInputWindow.hideWindow()
+
+        // 执行命令
+        executeCommand(with: text)
+    }
+
+    func voiceRecognizer(_ recognizer: VoiceRecognizer, didFailWithError error: Error) {
+        print("语音识别失败: \(error)")
+
+        // 隐藏提示窗口
+        voiceInputWindow.hideWindow()
+
+        // 显示错误提示
+        showErrorMessage("语音识别失败: \(error.localizedDescription)")
+    }
+
+    func voiceRecognizerDidStartRecording(_ recognizer: VoiceRecognizer) {
+        print("开始录音")
+        voiceInputWindow.updateStatus("正在录音...")
+    }
+
+    func voiceRecognizerDidStopRecording(_ recognizer: VoiceRecognizer) {
+        print("停止录音")
+        voiceInputWindow.updateStatus("正在识别...")
+    }
+
+    private func executeCommand(with input: String) {
+        let trimmedInput = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedInput.isEmpty else {
+            print("识别结果为空，跳过命令执行。")
+            showErrorMessage("没有识别到有效的指令，请再试一次。")
+            return
+        }
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/opt/homebrew/bin/agent-tars")
+        process.arguments = ["run", "--input", trimmedInput]
+
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = pipe
+
+        do {
+            try process.run()
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            if let output = String(data: data, encoding: .utf8) {
+                print("命令输出: \(output)")
+                // 可以选择显示结果通知
+                showNotification("命令执行完成", message: output)
+            }
+        } catch {
+            print("执行命令失败: \(error)")
+            showErrorMessage("执行命令失败: \(error.localizedDescription)")
+        }
+    }
+
+    private func showNotification(_ title: String, message: String) {
+        let center = UNUserNotificationCenter.current()
+        center.requestAuthorization(options: [.alert, .sound]) { granted, error in
+            if granted {
+                let content = UNMutableNotificationContent()
+                content.title = title
+                content.body = message
+                content.sound = UNNotificationSound.default
+
+                let request = UNNotificationRequest(
+                    identifier: UUID().uuidString,
+                    content: content,
+                    trigger: nil
+                )
+
+                center.add(request) { error in
+                    if let error = error {
+                        print("发送通知失败: \(error)")
+                    }
+                }
+            } else {
+                print("通知权限被拒绝")
+            }
+        }
+    }
+
+    private func showErrorMessage(_ message: String) {
+        let alert = NSAlert()
+        alert.messageText = "错误"
+        alert.informativeText = message
+        alert.alertStyle = .critical
+        alert.addButton(withTitle: "确定")
+        alert.runModal()
+    }
+}
+
+// MARK: - Main Entry Point
+let app = NSApplication.shared
+let delegate = VoiceMenuBarApp()
+app.delegate = delegate
+app.run()
