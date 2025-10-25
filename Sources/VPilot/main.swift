@@ -166,7 +166,7 @@ extension VPilotApp: VoiceRecognizerDelegate {
 
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/opt/homebrew/bin/agent-tars")
-        process.arguments = ["run", "--input", trimmedInput, "--debug", "--stream"]
+        process.arguments = ["run", "--input", trimmedInput, "--debug", "--stream", "--open"]
 
         let pipe = Pipe()
         process.standardOutput = pipe

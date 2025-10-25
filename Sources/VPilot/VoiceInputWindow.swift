@@ -18,6 +18,8 @@ class VoiceInputWindow: NSObject {
     private var outsideEventMonitor: Any?
     private var isRecording = false
     private var llmResponseTexts: [String] = []
+    private let minWindowHeight: CGFloat = 150
+    private var chromeHeight: CGFloat = 0
 
     override init() {
         super.init()
@@ -25,7 +27,7 @@ class VoiceInputWindow: NSObject {
     }
 
     private func setupWindow() {
-        let windowRect = NSRect(x: 0, y: 0, width: 320, height: 260)
+        let windowRect = NSRect(x: 0, y: 0, width: 320, height: minWindowHeight)
         window = NSWindow(
             contentRect: windowRect,
             styleMask: [.borderless],
@@ -84,6 +86,12 @@ class VoiceInputWindow: NSObject {
         responseTextView.drawsBackground = false
         responseTextView.textContainerInset = NSSize(width: 4, height: 8)
         responseTextView.font = NSFont.systemFont(ofSize: 13)
+        responseTextView.isVerticallyResizable = true
+        responseTextView.isHorizontallyResizable = false
+        responseTextView.minSize = NSSize(width: 0, height: 0)
+        responseTextView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        responseTextView.textContainer?.widthTracksTextView = true
+        responseTextView.textContainer?.heightTracksTextView = false
 
         responseScrollView = NSScrollView()
         responseScrollView.hasVerticalScroller = true
@@ -120,7 +128,6 @@ class VoiceInputWindow: NSObject {
             responseScrollView.bottomAnchor.constraint(equalTo: backgroundView.bottomAnchor, constant: -16)
         ])
 
-        renderLLMResponses()
     }
 
     func showWindow(at statusItem: NSStatusItem) {
@@ -212,6 +219,7 @@ class VoiceInputWindow: NSObject {
 
     func resetLLMResponses() {
         llmResponseTexts.removeAll()
+        chromeHeight = 0
         renderLLMResponses()
     }
 
@@ -224,7 +232,7 @@ class VoiceInputWindow: NSObject {
         guard responseTextView != nil else { return }
 
         if llmResponseTexts.isEmpty {
-            responseTextView.string = "暂无LLM响应。"
+            responseTextView.string = ""
         } else {
             let formatted = llmResponseTexts.enumerated().map { index, content in
                 guard llmResponseTexts.count > 1 else { return content }
@@ -234,5 +242,66 @@ class VoiceInputWindow: NSObject {
         }
 
         responseTextView.scrollToEndOfDocument(nil)
+        updateWindowHeightForCurrentContent()
+    }
+
+    private func updateWindowHeightForCurrentContent() {
+        backgroundView.layoutSubtreeIfNeeded()
+
+        guard !llmResponseTexts.isEmpty,
+              let textContainer = responseTextView.textContainer,
+              let layoutManager = responseTextView.layoutManager else {
+            resetWindowHeightIfNeeded()
+            return
+        }
+
+        let availableWidth = responseScrollView.contentSize.width
+        textContainer.containerSize = NSSize(width: availableWidth, height: CGFloat.greatestFiniteMagnitude)
+        layoutManager.ensureLayout(for: textContainer)
+        let usedHeight = layoutManager.usedRect(for: textContainer).height
+        let verticalInset = responseTextView.textContainerInset.height * 2
+        let contentHeight = max(usedHeight + verticalInset, 0)
+
+        if chromeHeight == 0 {
+            backgroundView.layoutSubtreeIfNeeded()
+            chromeHeight = backgroundView.frame.height - responseScrollView.frame.height
+            if chromeHeight <= 0 {
+                chromeHeight = minWindowHeight - max(responseScrollView.frame.height, 0)
+            }
+        }
+
+        let maxHeight = computeMaxWindowHeight()
+        var desiredHeight = chromeHeight + contentHeight
+        desiredHeight = max(minWindowHeight, desiredHeight)
+        desiredHeight = min(maxHeight, desiredHeight)
+
+        let currentContentHeight = window.contentView?.frame.height ?? window.frame.height
+        if abs(currentContentHeight - desiredHeight) > 0.5 {
+            var frame = window.frame
+            let delta = desiredHeight - currentContentHeight
+            frame.size.height += delta
+            frame.origin.y -= delta
+            window.setFrame(frame, display: window.isVisible, animate: false)
+        }
+
+        responseScrollView.flashScrollers()
+    }
+
+    private func resetWindowHeightIfNeeded() {
+        guard let contentHeight = window.contentView?.frame.height else { return }
+        if abs(contentHeight - minWindowHeight) <= 0.5 { return }
+
+        var frame = window.frame
+        let delta = minWindowHeight - contentHeight
+        frame.size.height += delta
+        frame.origin.y -= delta
+        window.setFrame(frame, display: window.isVisible, animate: false)
+    }
+
+    private func computeMaxWindowHeight() -> CGFloat {
+        if let screenHeight = window.screen?.visibleFrame.height ?? NSScreen.main?.visibleFrame.height {
+            return max(minWindowHeight, floor(screenHeight / 3))
+        }
+        return minWindowHeight * 1.5
     }
 }
