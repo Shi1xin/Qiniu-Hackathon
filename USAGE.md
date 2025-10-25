@@ -1,4 +1,4 @@
-# VoiceMenuBar 使用指南
+# VPilot 使用指南
 
 ## 快速开始
 
@@ -10,7 +10,7 @@
 
 # 方法2: 手动构建运行
 swift build
-swift run VoiceMenuBar
+swift run VPilot
 ```
 
 ### 2. 首次使用
@@ -55,7 +55,7 @@ swift run VoiceMenuBar
 如果权限被拒绝，请到以下位置重新设置：
 1. 系统偏好设置 → 安全性与隐私 → 隐私
 2. 找到"语音识别"或"语音听写"
-3. 添加 VoiceMenuBar 到允许列表
+3. 添加 VPilot 到允许列表
 
 ## 故障排除
 
@@ -87,7 +87,7 @@ swift build
 ## 自定义配置
 
 ### 修改命令路径
-编辑 `Sources/VoiceMenuBar/main.swift` 文件：
+编辑 `Sources/VPilot/main.swift` 文件：
 
 ```swift
 // 找到这行（大约第121行）
@@ -98,7 +98,7 @@ process.executableURL = URL(fileURLWithPath: "/path/to/your/agent-tars")
 ```
 
 ### 修改识别语言
-编辑 `Sources/VoiceMenuBar/VoiceRecognizer.swift` 文件：
+编辑 `Sources/VPilot/VoiceRecognizer.swift` 文件：
 
 ```swift
 // 找到这行（大约第14行）
@@ -109,7 +109,7 @@ speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))!
 ```
 
 ### 修改超时时间
-编辑 `Sources/VoiceMenuBar/VoiceRecognizer.swift` 文件：
+编辑 `Sources/VPilot/VoiceRecognizer.swift` 文件：
 
 ```swift
 // 找到这行（大约第132行）
@@ -123,7 +123,7 @@ DispatchQueue.main.asyncAfter(deadline: .now() + 15) {
 
 ### 项目结构
 ```
-Sources/VoiceMenuBar/
+Sources/VPilot/
 ├── main.swift              # 主程序入口
 ├── VoiceRecognizer.swift   # 语音识别模块
 ├── VoiceInputWindow.swift  # 用户界面

@@ -3,7 +3,7 @@ import Speech
 import AVFoundation
 import UserNotifications
 
-class VoiceMenuBarApp: NSObject, NSApplicationDelegate {
+class VPilotApp: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var voiceRecognizer: VoiceRecognizer!
     private var voiceInputWindow: VoiceInputWindow!
@@ -88,7 +88,7 @@ class VoiceMenuBarApp: NSObject, NSApplicationDelegate {
 }
 
 // MARK: - VoiceRecognizerDelegate
-extension VoiceMenuBarApp: VoiceRecognizerDelegate {
+extension VPilotApp: VoiceRecognizerDelegate {
     func voiceRecognizer(_ recognizer: VoiceRecognizer, didReceiveText text: String) {
         print("识别到的文本: \(text)")
 
@@ -192,7 +192,7 @@ extension VoiceMenuBarApp: VoiceRecognizerDelegate {
 }
 
 // MARK: - VoiceInputWindowDelegate
-extension VoiceMenuBarApp: VoiceInputWindowDelegate {
+extension VPilotApp: VoiceInputWindowDelegate {
     func voiceInputWindowDidRequestStartRecording(_ window: VoiceInputWindow) {
         guard !isRecording else {
             voiceInputWindow.setRecordButtonEnabled(true)
@@ -217,6 +217,6 @@ extension VoiceMenuBarApp: VoiceInputWindowDelegate {
 
 // MARK: - Main Entry Point
 let app = NSApplication.shared
-let delegate = VoiceMenuBarApp()
+let delegate = VPilotApp()
 app.delegate = delegate
 app.run()

@@ -51,7 +51,7 @@ class VoiceInputWindow: NSObject {
         backgroundView.layer?.masksToBounds = true
 
         // 标题标签
-        titleLabel = NSTextField(labelWithString: "🎤 语音输入")
+        titleLabel = NSTextField(labelWithString: "VPilot")
         titleLabel.font = NSFont.boldSystemFont(ofSize: 18)
         titleLabel.textColor = NSColor.labelColor
         titleLabel.alignment = .center
