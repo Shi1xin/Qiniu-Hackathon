@@ -117,7 +117,7 @@ extension VoiceMenuBarApp: VoiceRecognizerDelegate {
 
     private func executeCommand(with input: String) {
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/local/bin/agent-tars")
+        process.executableURL = URL(fileURLWithPath: "/opt/homebrew/bin/agent-tars")
         process.arguments = ["run", "--input", input]
 
         let pipe = Pipe()

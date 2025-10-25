@@ -7,13 +7,13 @@
     <key>CFBundleDisplayName</key>
     <string>VoiceMenuBar</string>
     <key>CFBundleExecutable</key>
-    <string>$(EXECUTABLE_NAME)</string>
+    <string>VoiceMenuBar</string>
     <key>CFBundleIdentifier</key>
     <string>com.voicebar.app</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>$(PRODUCT_NAME)</string>
+    <string>VoiceMenuBar</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -28,8 +28,6 @@
     <true/>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
-    <key>NSSpeechRecognitionUsageDescription</key>
-    <string>此应用需要使用语音识别功能来转换您的语音为文本，以便执行相应的命令。</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>此应用需要访问麦克风来录制您的语音输入。</string>
     <key>NSSpeechRecognitionUsageDescription</key>
