@@ -15,6 +15,7 @@ class VoiceRecognizer: NSObject {
     private var recognitionTask: SFSpeechRecognitionTask?
     private let audioEngine = AVAudioEngine()
     private var isTapInstalled = false
+    private var lastRecognizedText = ""
 
     weak var delegate: VoiceRecognizerDelegate?
 
@@ -68,6 +69,8 @@ class VoiceRecognizer: NSObject {
         // 停止之前的识别任务
     stopRecording()
 
+        lastRecognizedText = ""
+
         // macOS 上不需要配置音频会话，直接开始录音
         print("准备开始录音")
 
@@ -105,19 +108,32 @@ class VoiceRecognizer: NSObject {
         recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { result, error in
             if let result = result {
                 let recognizedText = result.bestTranscription.formattedString
+                let trimmedText = recognizedText.trimmingCharacters(in: .whitespacesAndNewlines)
                 print("识别结果: \(recognizedText)")
+
+                if !trimmedText.isEmpty {
+                    self.lastRecognizedText = trimmedText
+                }
 
                 // 检查是否有足够的停顿时间来确定录音结束
                 if result.isFinal {
+                    let finalText = !trimmedText.isEmpty ? trimmedText : self.lastRecognizedText
                     DispatchQueue.main.async {
-                        self.delegate?.voiceRecognizer(self, didReceiveText: recognizedText)
+                        self.delegate?.voiceRecognizer(self, didReceiveText: finalText)
                         self.stopRecording(dueToCancellation: false)
                     }
                 }
             }
 
             if let error = error {
-                print("识别错误: \(error)")
+                let nsError = error as NSError
+                print("识别错误: \(error) | domain: \(nsError.domain) code: \(nsError.code)")
+
+                if nsError.domain == "kLSRErrorDomain" && nsError.code == 301 {
+                    print("识别任务已取消，忽略该错误。")
+                    return
+                }
+
                 DispatchQueue.main.async {
                     self.delegate?.voiceRecognizer(self, didFailWithError: error)
                     self.stopRecording()
@@ -149,14 +165,11 @@ class VoiceRecognizer: NSObject {
 
         if dueToCancellation {
             recognitionTask?.cancel()
-        } else {
-            if recognitionTask?.state == .running {
-                recognitionTask?.finish()
-            }
         }
 
         recognitionRequest = nil
         recognitionTask = nil
+        lastRecognizedText = ""
 
         delegate?.voiceRecognizerDidStopRecording(self)
         print("录音已停止")

@@ -116,9 +116,16 @@ extension VoiceMenuBarApp: VoiceRecognizerDelegate {
     }
 
     private func executeCommand(with input: String) {
+        let trimmedInput = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedInput.isEmpty else {
+            print("识别结果为空，跳过命令执行。")
+            showErrorMessage("没有识别到有效的指令，请再试一次。")
+            return
+        }
+
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/opt/homebrew/bin/agent-tars")
-        process.arguments = ["run", "--input", input]
+        process.arguments = ["run", "--input", trimmedInput]
 
         let pipe = Pipe()
         process.standardOutput = pipe
