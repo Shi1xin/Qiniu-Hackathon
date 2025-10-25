@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDisplayName</key>
+    <string>Voice Assistant</string>
+    <key>CFBundleExecutable</key>
+    <string>VoiceAssistant</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.yourcompany.voiceassistant</string>
+    <key>CFBundleName</key>
+    <string>Voice Assistant</string>
+    <key>CFBundleVersion</key>
+    <string>1.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>This app needs microphone access to provide voice commands and transcription features.</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>This app uses speech recognition to convert your voice into text for commands and queries.</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright © 2025 Your Company. All rights reserved.</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+</dict>
+</plist>

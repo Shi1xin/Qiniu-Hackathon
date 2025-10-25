@@ -24,11 +24,11 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create Swift package structure per implementation plan in VoiceAssistant/
-- [ ] T002 Initialize Swift 6.0 package with AppKit, Speech Framework, and Combine dependencies in Package.swift
-- [ ] T003 [P] Create Resources directory with Assets.xcassets and Info.plist templates
-- [ ] T004 [P] Create Scripts directory with create-app-bundle.sh and notarize-app.sh templates
-- [ ] T005 [P] Setup Tests directory structure with UnitTests and IntegrationTests
+- [X] T001 Create Swift package structure per implementation plan in VoiceAssistant/
+- [X] T002 Initialize Swift 6.0 package with AppKit, Speech Framework, and Combine dependencies in Package.swift
+- [X] T003 [P] Create Resources directory with Assets.xcassets and Info.plist templates
+- [X] T004 [P] Create Scripts directory with create-app-bundle.sh and notarize-app.sh templates
+- [X] T005 [P] Setup Tests directory structure with UnitTests and IntegrationTests
 
 ---
 
@@ -38,15 +38,15 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T006 Create core data models in Sources/VoiceAssistant/Models/ directory
-- [ ] T007 [P] Implement VoiceSession model with status enums in Sources/VoiceAssistant/Models/VoiceSession.swift
-- [ ] T008 [P] Implement TranscriptionResult model in Sources/VoiceAssistant/Models/TranscriptionResult.swift
-- [ ] T009 [P] Implement CommandExecution model in Sources/VoiceAssistant/Models/CommandExecution.swift
-- [ ] T010 [P] Implement UserPreferences model in Sources/VoiceAssistant/Models/UserPreferences.swift
-- [ ] T011 [P] Implement error types for SpeechRecognitionError and CommandExecutionError in Sources/VoiceAssistant/Models/
-- [ ] T012 Create main application entry point in Sources/VoiceAssistant/main.swift
-- [ ] T013 Create VoiceAssistantApp class in Sources/VoiceAssistant/VoiceAssistantApp.swift
-- [ ] T014 [P] Create UserDefaultsKeys struct for preferences storage in Sources/VoiceAssistant/Models/
+- [X] T006 Create core data models in Sources/VoiceAssistant/Models/ directory
+- [X] T007 [P] Implement VoiceSession model with status enums in Sources/VoiceAssistant/Models/VoiceSession.swift
+- [X] T008 [P] Implement TranscriptionResult model in Sources/VoiceAssistant/Models/TranscriptionResult.swift
+- [X] T009 [P] Implement CommandExecution model in Sources/VoiceAssistant/Models/CommandExecution.swift
+- [X] T010 [P] Implement UserPreferences model in Sources/VoiceAssistant/Models/UserPreferences.swift
+- [X] T011 [P] Implement error types for SpeechRecognitionError and CommandExecutionError in Sources/VoiceAssistant/Models/
+- [X] T012 Create main application entry point in Sources/VoiceAssistant/main.swift
+- [X] T013 Create VoiceAssistantApp class in Sources/VoiceAssistant/VoiceAssistantApp.swift
+- [X] T014 [P] Create UserDefaultsKeys struct for preferences storage in Sources/VoiceAssistant/Models/
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -60,19 +60,19 @@
 
 ### Implementation for User Story 1
 
-- [ ] T015 [P] [US1] Create SpeechRecognitionService protocol in Sources/VoiceAssistant/Services/SpeechRecognitionService.swift
-- [ ] T016 [US1] Implement SpeechRecognitionManager class in Sources/VoiceAssistant/Services/SpeechRecognitionService.swift
-- [ ] T017 [P] [US1] Create AudioRecordingService protocol in Sources/VoiceAssistant/Services/AudioRecordingService.swift
-- [ ] T018 [US1] Implement AudioRecordingManager class in Sources/VoiceAssistant/Services/AudioRecordingService.swift
-- [ ] T019 [P] [US1] Create CommandExecutionService protocol in Sources/VoiceAssistant/Services/CommandExecutionService.swift
-- [ ] T020 [US1] Implement CommandExecutionManager class in Sources/VoiceAssistant/Services/CommandExecutionService.swift
-- [ ] T021 [P] [US1] Create PreferencesService protocol in Sources/VoiceAssistant/Services/PreferencesService.swift
-- [ ] T022 [US1] Implement PreferencesManager class in Sources/VoiceAssistant/Services/PreferencesService.swift
-- [ ] T023 [P] [US1] Create NotificationService protocol in Sources/VoiceAssistant/Services/NotificationService.swift
-- [ ] T024 [US1] Implement NotificationManager class in Sources/VoiceAssistant/Services/NotificationService.swift
-- [ ] T025 [P] [US1] Create MenubarManager class in Sources/VoiceAssistant/UI/MenubarManager.swift
-- [ ] T026 [US1] Create VoiceInputViewController class in Sources/VoiceAssistant/UI/VoiceInputViewController.swift
-- [ ] T027 [US1] Create PopoverController class in Sources/VoiceAssistant/UI/PopoverController.swift
+- [X] T015 [P] [US1] Create SpeechRecognitionService protocol in Sources/VoiceAssistant/Services/SpeechRecognitionService.swift
+- [X] T016 [US1] Implement SpeechRecognitionManager class in Sources/VoiceAssistant/Services/SpeechRecognitionService.swift
+- [X] T017 [P] [US1] Create AudioRecordingService protocol in Sources/VoiceAssistant/Services/AudioRecordingService.swift
+- [X] T018 [US1] Implement AudioRecordingManager class in Sources/VoiceAssistant/Services/AudioRecordingService.swift
+- [X] T019 [P] [US1] Create CommandExecutionService protocol in Sources/VoiceAssistant/Services/CommandExecutionService.swift
+- [X] T020 [US1] Implement CommandExecutionManager class in Sources/VoiceAssistant/Services/CommandExecutionService.swift
+- [X] T021 [P] [US1] Create PreferencesService protocol in Sources/VoiceAssistant/Services/PreferencesService.swift
+- [X] T022 [US1] Implement PreferencesManager class in Sources/VoiceAssistant/Services/PreferencesService.swift
+- [X] T023 [P] [US1] Create NotificationService protocol in Sources/VoiceAssistant/Services/NotificationService.swift
+- [X] T024 [US1] Implement NotificationManager class in Sources/VoiceAssistant/Services/NotificationService.swift
+- [X] T025 [P] [US1] Create MenubarManager class in Sources/VoiceAssistant/UI/MenubarManager.swift
+- [X] T026 [US1] Create VoiceInputViewController class in Sources/VoiceAssistant/UI/VoiceInputViewController.swift
+- [X] T027 [US1] Create PopoverController class in Sources/VoiceAssistant/UI/PopoverController.swift
 - [ ] T028 [US1] Implement voice session management in SpeechRecognitionService (depends on T007, T015, T016)
 - [ ] T029 [US1] Implement audio recording with permission handling in AudioRecordingService (depends on T017, T018)
 - [ ] T030 [US1] Implement agent-tars command execution in CommandExecutionService (depends on T009, T019, T020)
