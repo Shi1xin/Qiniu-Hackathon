@@ -10,15 +10,55 @@ class VPilotApp: NSObject, NSApplicationDelegate {
     private var isRecording = false
     private let speechSynthesizer = AVSpeechSynthesizer()
     private var isSpeechEnabled = true
+    private var plannerEnabled = false
+    private var browserControlMode: BrowserControlMode = .mixed
+    private enum BrowserControlMode: String, CaseIterable {
+        case mixed = "mixed"
+        case browserUseOnly = "browser-use-only"
+        case guiAgentOnly = "gui-agent-only"
+
+        var localizedName: String {
+            switch self {
+            case .mixed: return "混合"
+            case .browserUseOnly: return "仅Browser Use"
+            case .guiAgentOnly: return "仅GUI Agent"
+            }
+        }
+
+        var parentMenuTitle: String {
+            "浏览器控制：\(localizedName)"
+        }
+    }
     private lazy var speechToggleMenuItem: NSMenuItem = {
         let item = NSMenuItem(title: "语音播报", action: #selector(toggleSpeechOutput(_:)), keyEquivalent: "")
         item.target = self
         item.state = .on
         return item
     }()
+    private lazy var browserModeMenuItem: NSMenuItem = {
+        let parent = NSMenuItem(title: browserControlMode.parentMenuTitle, action: nil, keyEquivalent: "")
+        let submenu = NSMenu()
+        BrowserControlMode.allCases.forEach { mode in
+            let item = NSMenuItem(title: mode.localizedName, action: #selector(selectBrowserMode(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = mode.rawValue
+            item.state = mode == browserControlMode ? .on : .off
+            submenu.addItem(item)
+        }
+        parent.submenu = submenu
+        return parent
+    }()
+    private lazy var plannerToggleMenuItem: NSMenuItem = {
+        let item = NSMenuItem(title: "启用任务规划", action: #selector(togglePlanner(_:)), keyEquivalent: "")
+        item.target = self
+        item.state = .off
+        return item
+    }()
     private lazy var statusMenu: NSMenu = {
         let menu = NSMenu()
         menu.addItem(speechToggleMenuItem)
+        menu.addItem(browserModeMenuItem)
+        menu.addItem(plannerToggleMenuItem)
         menu.addItem(NSMenuItem.separator())
         let quitItem = NSMenuItem(title: "退出", action: #selector(quitApplication), keyEquivalent: "")
         quitItem.target = self
@@ -122,6 +162,15 @@ class VPilotApp: NSObject, NSApplicationDelegate {
 
     private func updateStatusMenuItems() {
         speechToggleMenuItem.state = isSpeechEnabled ? .on : .off
+        plannerToggleMenuItem.state = plannerEnabled ? .on : .off
+        browserModeMenuItem.title = browserControlMode.parentMenuTitle
+        if let submenu = browserModeMenuItem.submenu {
+            for item in submenu.items {
+                guard let raw = item.representedObject as? String,
+                      let mode = BrowserControlMode(rawValue: raw) else { continue }
+                item.state = mode == browserControlMode ? .on : .off
+            }
+        }
     }
 
     @objc private func toggleSpeechOutput(_ sender: NSMenuItem) {
@@ -131,6 +180,18 @@ class VPilotApp: NSObject, NSApplicationDelegate {
         if !isSpeechEnabled, speechSynthesizer.isSpeaking {
             speechSynthesizer.stopSpeaking(at: .immediate)
         }
+    }
+
+    @objc private func togglePlanner(_ sender: NSMenuItem) {
+        plannerEnabled.toggle()
+        updateStatusMenuItems()
+    }
+
+    @objc private func selectBrowserMode(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String,
+              let mode = BrowserControlMode(rawValue: raw) else { return }
+        browserControlMode = mode
+        updateStatusMenuItems()
     }
 }
 
@@ -189,7 +250,15 @@ extension VPilotApp: VoiceRecognizerDelegate {
 
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/opt/homebrew/bin/agent-tars")
-        process.arguments = ["run", "--input", trimmedInput, "--debug", "--stream", "--open"]
+        var arguments = ["run", "--input", trimmedInput, "--debug", "--stream", "--open"]
+
+        if plannerEnabled {
+            arguments.append("--planner.enabled")
+        }
+
+        arguments.append(contentsOf: ["--browser.control", browserControlMode.rawValue])
+
+        process.arguments = arguments
 
         let pipe = Pipe()
         process.standardOutput = pipe
