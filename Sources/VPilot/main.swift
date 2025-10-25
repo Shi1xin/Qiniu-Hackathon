@@ -57,7 +57,7 @@ class VPilotApp: NSObject, NSApplicationDelegate {
                   controlPoint1: NSPoint(x: size.width * 0.6, y: size.height * 0.1),
                   controlPoint2: NSPoint(x: size.width * 0.4, y: size.height * 0.1))
 
-        NSColor.systemBlue.setFill()
+        NSColor.systemGray.setFill()
         path.fill()
 
         // 麦克风支架
@@ -68,7 +68,7 @@ class VPilotApp: NSObject, NSApplicationDelegate {
         standPath.line(to: NSPoint(x: size.width * 0.4, y: size.height * 0.85))
         standPath.close()
 
-        NSColor.systemBlue.setFill()
+        NSColor.systemGray.setFill()
         standPath.fill()
 
         image.unlockFocus()
