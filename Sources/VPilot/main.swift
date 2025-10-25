@@ -86,8 +86,8 @@ class VPilotApp: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
 
         if let button = statusItem.button {
-            // 创建一个简单的图标
-            let image = createMicrophoneIcon()
+            // 加载菜单栏图标
+            let image = loadMenuBarIcon()
             button.image = image
             button.action = #selector(statusBarClicked)
             button.target = self
@@ -95,7 +95,22 @@ class VPilotApp: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func createMicrophoneIcon() -> NSImage {
+    private func loadMenuBarIcon() -> NSImage {
+        // 尝试从Resources目录加载SVG图标
+        if let resourcePath = Bundle.main.resourcePath {
+            let svgPath = (resourcePath as NSString).appendingPathComponent("MICROPHONE-mono.svg")
+            if let svgImage = NSImage(contentsOfFile: svgPath) {
+                svgImage.isTemplate = true // 使图标适应系统主题
+                svgImage.size = NSSize(width: 18, height: 18)
+                return svgImage
+            }
+        }
+        
+        // 如果加载失败，回退到绘制简单图标
+        return createFallbackIcon()
+    }
+
+    private func createFallbackIcon() -> NSImage {
         let size = NSSize(width: 18, height: 18)
         let image = NSImage(size: size)
 

@@ -43,4 +43,8 @@ gh repo clone Shi1xin/Qiniu-Hackathon
 
 ## 安装为应用
 
-> 开发中
+```shell
+./package_dmg.sh
+```
+
+脚本会生成 `dist/VPilot.dmg`，将应用拖入 `Applications` 后即可分发或安装。

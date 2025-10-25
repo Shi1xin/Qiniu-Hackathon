@@ -8,6 +8,8 @@
     <string>VPilot</string>
     <key>CFBundleExecutable</key>
     <string>VPilot</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
     <string>com.vpilot.app</string>
     <key>CFBundleInfoDictionaryVersion</key>
