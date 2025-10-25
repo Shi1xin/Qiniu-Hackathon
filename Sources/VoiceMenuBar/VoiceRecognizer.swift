@@ -14,6 +14,7 @@ class VoiceRecognizer: NSObject {
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
     private let audioEngine = AVAudioEngine()
+    private var isTapInstalled = false
 
     weak var delegate: VoiceRecognizerDelegate?
 
@@ -65,7 +66,7 @@ class VoiceRecognizer: NSObject {
 
     func startRecording() {
         // 停止之前的识别任务
-        stopRecording()
+    stopRecording()
 
         // macOS 上不需要配置音频会话，直接开始录音
         print("准备开始录音")
@@ -87,6 +88,7 @@ class VoiceRecognizer: NSObject {
         inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
             recognitionRequest.append(buffer)
         }
+        isTapInstalled = true
 
         audioEngine.prepare()
         do {
@@ -101,18 +103,15 @@ class VoiceRecognizer: NSObject {
 
         // 开始识别任务
         recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { result, error in
-            var isFinal = false
-
             if let result = result {
                 let recognizedText = result.bestTranscription.formattedString
                 print("识别结果: \(recognizedText)")
 
                 // 检查是否有足够的停顿时间来确定录音结束
                 if result.isFinal {
-                    isFinal = true
                     DispatchQueue.main.async {
                         self.delegate?.voiceRecognizer(self, didReceiveText: recognizedText)
-                        self.stopRecording()
+                        self.stopRecording(dueToCancellation: false)
                     }
                 }
             }
@@ -125,9 +124,6 @@ class VoiceRecognizer: NSObject {
                 }
             }
 
-            if isFinal {
-                self.stopRecording()
-            }
         }
 
         // 设置超时自动停止
@@ -139,13 +135,27 @@ class VoiceRecognizer: NSObject {
         }
     }
 
-    func stopRecording() {
-        audioEngine.stop()
-        audioEngine.inputNode.removeTap(onBus: 0)
+    func stopRecording(dueToCancellation: Bool = true) {
+        if audioEngine.isRunning {
+            audioEngine.stop()
+        }
+
+        if isTapInstalled {
+            audioEngine.inputNode.removeTap(onBus: 0)
+            isTapInstalled = false
+        }
 
         recognitionRequest?.endAudio()
+
+        if dueToCancellation {
+            recognitionTask?.cancel()
+        } else {
+            if recognitionTask?.state == .running {
+                recognitionTask?.finish()
+            }
+        }
+
         recognitionRequest = nil
-        recognitionTask?.cancel()
         recognitionTask = nil
 
         delegate?.voiceRecognizerDidStopRecording(self)
