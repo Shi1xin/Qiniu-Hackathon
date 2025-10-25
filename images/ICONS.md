@@ -10,8 +10,8 @@
 ## 图标位置
 
 - 源文件：`images/` 目录
-- 应用图标：`Sources/VPilot/Resources/AppIcon.icns`
-- 菜单栏图标：`Sources/VPilot/Resources/MICROPHONE-mono.svg`
+- 应用图标：`src/Resources/AppIcon.icns`
+- 菜单栏图标：`src/Resources/MICROPHONE-mono.svg`
 
 ## 重新生成图标
 

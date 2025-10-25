@@ -5,7 +5,7 @@ import Foundation
 let packageRoot = URL(fileURLWithPath: #filePath)
     .deletingLastPathComponent()
 let infoPlistPath = packageRoot
-    .appendingPathComponent("Sources/VPilot/Resources/Info.plist")
+    .appendingPathComponent("src/Resources/Info.plist")
     .path
 
 let package = Package(
@@ -24,6 +24,7 @@ let package = Package(
         .executableTarget(
             name: "VPilot",
             dependencies: [],
+            path: "src",
             resources: [
                 .copy("Resources")
             ],

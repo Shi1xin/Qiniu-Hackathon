@@ -12,7 +12,7 @@ swift build
 BUILD_DIR=".build/debug"
 APP_BUNDLE="$BUILD_DIR/VPilot.app"
 EXECUTABLE="$BUILD_DIR/VPilot"
-INFO_PLIST="Sources/VPilot/Resources/Info.plist"
+INFO_PLIST="src/Resources/Info.plist"
 
 if [ ! -f "$EXECUTABLE" ]; then
 	echo "未找到构建产物 $EXECUTABLE" >&2
@@ -28,7 +28,7 @@ chmod +x "$APP_BUNDLE/Contents/MacOS/VPilot"
 cp "$INFO_PLIST" "$APP_BUNDLE/Contents/Info.plist"
 
 # 拷贝额外资源
-rsync -a --delete "Sources/VPilot/Resources/" "$APP_BUNDLE/Contents/Resources/"
+rsync -a --delete "src/Resources/" "$APP_BUNDLE/Contents/Resources/"
 
 echo "打包完成，正在启动 VPilot.app..."
 

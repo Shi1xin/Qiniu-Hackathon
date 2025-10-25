@@ -4,7 +4,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 IMAGES_DIR="$ROOT_DIR/images"
-RESOURCES_DIR="$ROOT_DIR/Sources/VPilot/Resources"
+RESOURCES_DIR="$ROOT_DIR/src/Resources"
 
 echo "Generating app icon from MICROPHONE.svg..."
 
