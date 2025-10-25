@@ -9,6 +9,13 @@ class VPilotApp: NSObject, NSApplicationDelegate {
     private var voiceInputWindow: VoiceInputWindow!
     private var isRecording = false
     private let speechSynthesizer = AVSpeechSynthesizer()
+    private lazy var statusMenu: NSMenu = {
+        let menu = NSMenu()
+        let quitItem = NSMenuItem(title: "退出", action: #selector(quitApplication), keyEquivalent: "")
+        quitItem.target = self
+        menu.addItem(quitItem)
+        return menu
+    }()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // 设置应用为后台应用，不显示在Dock中
@@ -35,6 +42,7 @@ class VPilotApp: NSObject, NSApplicationDelegate {
             button.image = image
             button.action = #selector(statusBarClicked)
             button.target = self
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
     }
 
@@ -78,6 +86,17 @@ class VPilotApp: NSObject, NSApplicationDelegate {
     }
 
     @objc private func statusBarClicked() {
+        guard let event = NSApp.currentEvent else { return }
+
+        let isContextClick = event.type == .rightMouseUp ||
+            (event.type == .leftMouseUp && event.modifierFlags.contains(.control))
+
+        if isContextClick {
+            guard let button = statusItem.button else { return }
+            NSMenu.popUpContextMenu(statusMenu, with: event, for: button)
+            return
+        }
+
         voiceInputWindow.showWindow(at: statusItem)
 
         if isRecording {
@@ -85,6 +104,10 @@ class VPilotApp: NSObject, NSApplicationDelegate {
             voiceInputWindow.updateStatus("正在录音...")
             voiceInputWindow.setRecordButtonEnabled(true)
         }
+    }
+
+    @objc private func quitApplication() {
+        NSApp.terminate(nil)
     }
 }
 
@@ -143,7 +166,7 @@ extension VPilotApp: VoiceRecognizerDelegate {
 
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/opt/homebrew/bin/agent-tars")
-        process.arguments = ["run", "--input", trimmedInput, "--debug"]
+        process.arguments = ["run", "--input", trimmedInput, "--debug", "--stream"]
 
         let pipe = Pipe()
         process.standardOutput = pipe
