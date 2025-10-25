@@ -79,7 +79,7 @@ class VoiceMenuBarApp: NSObject, NSApplicationDelegate {
         voiceRecognizer.requestPermissionsAndStartRecording()
 
         // 显示语音输入提示窗口
-        voiceInputWindow.showWindow()
+        voiceInputWindow.showWindow(at: statusItem)
     }
 }
 

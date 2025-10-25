@@ -17,16 +17,18 @@ class VoiceInputWindow: NSObject {
         let windowRect = NSRect(x: 0, y: 0, width: 300, height: 150)
         window = NSWindow(
             contentRect: windowRect,
-            styleMask: [.titled, .closable],
+            styleMask: [.borderless],
             backing: .buffered,
             defer: false
         )
 
         window.title = "语音输入"
-        window.level = .floating
+        window.level = .popUpMenu
         window.isOpaque = false
-        window.backgroundColor = NSColor.controlBackgroundColor.withAlphaComponent(0.95)
-        window.center()
+        window.backgroundColor = NSColor.clear
+        window.hasShadow = true
+        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        window.ignoresMouseEvents = false
 
         setupContentView()
     }
@@ -35,6 +37,7 @@ class VoiceInputWindow: NSObject {
         let contentView = NSView()
         contentView.wantsLayer = true
         contentView.layer?.cornerRadius = 12
+        contentView.layer?.backgroundColor = NSColor.controlBackgroundColor.withAlphaComponent(0.95).cgColor
 
         // 标题标签
         titleLabel = NSTextField(labelWithString: "🎤 语音输入")
@@ -123,16 +126,47 @@ class VoiceInputWindow: NSObject {
         pulseLayer.add(pulseAnimation, forKey: "pulse")
     }
 
-    func showWindow() {
+    func showWindow(at statusItem: NSStatusItem) {
         updateStatus("准备开始录音...")
+
+        // 计算窗口位置，显示在状态栏图标附近
+        if let button = statusItem.button, let screen = NSScreen.main {
+            let buttonFrame = button.window?.frame ?? button.frame
+            let windowSize = window.frame.size
+
+            // 计算窗口应该显示的位置
+            var x = buttonFrame.maxX - windowSize.width
+            var y = buttonFrame.minY - windowSize.height - 5
+
+            // 确保窗口不超出屏幕边界
+            let screenFrame = screen.visibleFrame
+            if x < screenFrame.minX {
+                x = screenFrame.minX + 10
+            }
+            if x + windowSize.width > screenFrame.maxX {
+                x = screenFrame.maxX - windowSize.width - 10
+            }
+            if y < screenFrame.minY {
+                y = buttonFrame.maxY + 5
+            }
+
+            window.setFrameOrigin(NSPoint(x: x, y: y))
+        }
+
         window.makeKeyAndOrderFront(nil)
-        window.center()
 
         // 添加进入动画
         window.alphaValue = 0
         NSAnimationContext.runAnimationGroup { context in
             context.duration = 0.3
             window.animator().alphaValue = 1.0
+        }
+
+        // 添加全局点击监听器，点击窗口外部时关闭窗口
+        NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
+            DispatchQueue.main.async {
+                self?.hideWindow()
+            }
         }
     }
 
