@@ -5,24 +5,24 @@ import Foundation
 let packageRoot = URL(fileURLWithPath: #filePath)
     .deletingLastPathComponent()
 let infoPlistPath = packageRoot
-    .appendingPathComponent("Sources/VoiceMenuBar/Resources/Info.plist")
+    .appendingPathComponent("Sources/VPilot/Resources/Info.plist")
     .path
 
 let package = Package(
-    name: "VoiceMenuBar",
+    name: "VPilot",
     platforms: [
         .macOS(.v13)
     ],
     products: [
         .executable(
-            name: "VoiceMenuBar",
-            targets: ["VoiceMenuBar"]
+            name: "VPilot",
+            targets: ["VPilot"]
         )
     ],
     dependencies: [],
     targets: [
         .executableTarget(
-            name: "VoiceMenuBar",
+            name: "VPilot",
             dependencies: [],
             resources: [
                 .copy("Resources")

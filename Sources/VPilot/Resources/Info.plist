@@ -5,15 +5,17 @@
     <key>CFBundleDevelopmentRegion</key>
     <string>zh_CN</string>
     <key>CFBundleDisplayName</key>
-    <string>VoiceMenuBar</string>
+    <string>VPilot</string>
     <key>CFBundleExecutable</key>
-    <string>VoiceMenuBar</string>
+    <string>VPilot</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
-    <string>com.voicebar.app</string>
+    <string>com.vpilot.app</string>
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>VoiceMenuBar</string>
+    <string>VPilot</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>

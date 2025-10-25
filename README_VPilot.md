@@ -1,4 +1,4 @@
-# VoiceMenuBar - 语音输入菜单栏应用
+# VPilot - 语音输入菜单栏应用
 
 一个基于Swift开发的macOS菜单栏应用，支持语音输入并执行命令。
 
@@ -30,7 +30,7 @@ swift build
 
 ```bash
 # 运行构建的可执行文件
-swift run VoiceMenuBar
+swift run VPilot
 ```
 
 ### 3. 创建可分发的应用（可选）
@@ -39,14 +39,14 @@ swift run VoiceMenuBar
 
 ```bash
 # 创建应用目录结构
-mkdir -p VoiceMenuBar.app/Contents/MacOS
-mkdir -p VoiceMenuBar.app/Contents/Resources
+mkdir -p VPilot.app/Contents/MacOS
+mkdir -p VPilot.app/Contents/Resources
 
 # 复制可执行文件
-cp .build/release/VoiceMenuBar VoiceMenuBar.app/Contents/MacOS/
+cp .build/release/VPilot VPilot.app/Contents/MacOS/
 
 # 复制Info.plist
-cp Sources/VoiceMenuBar/Resources/Info.plist VoiceMenuBar.app/Contents/
+cp Sources/VPilot/Resources/Info.plist VPilot.app/Contents/
 
 # 创建应用图标（可选）
 # 您可以添加一个.icns文件到Resources目录
@@ -73,7 +73,7 @@ cp Sources/VoiceMenuBar/Resources/Info.plist VoiceMenuBar.app/Contents/
 
 ### 修改命令路径
 
-如果 `agent-tars` 命令不在 `/usr/local/bin/agent-tars`，您可以在 `main.swift` 中修改：
+如果 `agent-tars` 命令不在 `/usr/local/bin/agent-tars`，您可以在 `Sources/VPilot/main.swift` 中修改：
 
 ```swift
 process.executableURL = URL(fileURLWithPath: "/path/to/your/agent-tars")
@@ -81,7 +81,7 @@ process.executableURL = URL(fileURLWithPath: "/path/to/your/agent-tars")
 
 ### 修改识别语言
 
-默认支持中文识别。如需修改为其他语言，在 `VoiceRecognizer.swift` 中：
+默认支持中文识别。如需修改为其他语言，在 `Sources/VPilot/VoiceRecognizer.swift` 中：
 
 ```swift
 // 改为英文
@@ -90,7 +90,7 @@ speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))!
 
 ### 自定义图标
 
-您可以在 `main.swift` 的 `createMicrophoneIcon()` 方法中自定义菜单栏图标。
+您可以在 `Sources/VPilot/main.swift` 的 `createMicrophoneIcon()` 方法中自定义菜单栏图标。
 
 ## 故障排除
 
@@ -118,7 +118,7 @@ speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))!
 ### 项目结构
 
 ```
-Sources/VoiceMenuBar/
+Sources/VPilot/
 ├── main.swift              # 主应用程序入口
 ├── VoiceRecognizer.swift   # 语音识别器
 ├── VoiceInputWindow.swift  # 语音输入提示窗口
@@ -128,7 +128,7 @@ Sources/VoiceMenuBar/
 
 ### 核心组件
 
-1. **VoiceMenuBarApp**: 主应用程序类，管理菜单栏和整体流程
+1. **VPilotApp**: 主应用程序类，管理菜单栏和整体流程
 2. **VoiceRecognizer**: 封装语音识别功能
 3. **VoiceInputWindow**: 提供用户反馈的浮动窗口
 
