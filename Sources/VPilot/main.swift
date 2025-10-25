@@ -8,6 +8,7 @@ class VPilotApp: NSObject, NSApplicationDelegate {
     private var voiceRecognizer: VoiceRecognizer!
     private var voiceInputWindow: VoiceInputWindow!
     private var isRecording = false
+    private let speechSynthesizer = AVSpeechSynthesizer()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // 设置应用为后台应用，不显示在Dock中
@@ -148,10 +149,42 @@ extension VPilotApp: VoiceRecognizerDelegate {
                 print("命令输出: \(output)")
                 // 可以选择显示结果通知
                 showNotification("命令执行完成", message: output)
+                speakResult(output)
             }
         } catch {
             print("执行命令失败: \(error)")
             showErrorMessage("执行命令失败: \(error.localizedDescription)")
+        }
+    }
+
+    private func speakResult(_ message: String) {
+        let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        // 标准化语音输出，避免朗读多余的空白字符。
+        let normalizedTokens = trimmed
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+        guard !normalizedTokens.isEmpty else { return }
+
+        var normalizedMessage = normalizedTokens.joined(separator: " ")
+        let maxLength = 200
+        if normalizedMessage.count > maxLength {
+            let prefix = normalizedMessage.prefix(maxLength)
+            normalizedMessage = String(prefix) + "，更多内容请查看通知。"
+        }
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+
+            if self.speechSynthesizer.isSpeaking {
+                self.speechSynthesizer.stopSpeaking(at: .immediate)
+            }
+
+            let utterance = AVSpeechUtterance(string: normalizedMessage)
+            utterance.voice = AVSpeechSynthesisVoice(language: "zh-CN")
+            utterance.rate = AVSpeechUtteranceDefaultSpeechRate
+            self.speechSynthesizer.speak(utterance)
         }
     }
 
