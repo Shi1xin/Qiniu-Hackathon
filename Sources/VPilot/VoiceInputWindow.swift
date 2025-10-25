@@ -13,8 +13,11 @@ class VoiceInputWindow: NSObject {
     private var statusLabel: NSTextField!
     private var recordButton: NSButton!
     private var backgroundView: NSVisualEffectView!
+    private var responseScrollView: NSScrollView!
+    private var responseTextView: NSTextView!
     private var outsideEventMonitor: Any?
     private var isRecording = false
+    private var llmResponseTexts: [String] = []
 
     override init() {
         super.init()
@@ -22,7 +25,7 @@ class VoiceInputWindow: NSObject {
     }
 
     private func setupWindow() {
-        let windowRect = NSRect(x: 0, y: 0, width: 300, height: 150)
+        let windowRect = NSRect(x: 0, y: 0, width: 320, height: 260)
         window = NSWindow(
             contentRect: windowRect,
             styleMask: [.borderless],
@@ -73,11 +76,29 @@ class VoiceInputWindow: NSObject {
         recordButton.layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.18).cgColor
         recordButton.contentTintColor = NSColor.controlAccentColor
         recordButton.translatesAutoresizingMaskIntoConstraints = false
+
+        // LLM响应滚动区域
+        responseTextView = NSTextView(frame: .zero)
+        responseTextView.isEditable = false
+        responseTextView.isSelectable = true
+        responseTextView.drawsBackground = false
+        responseTextView.textContainerInset = NSSize(width: 4, height: 8)
+        responseTextView.font = NSFont.systemFont(ofSize: 13)
+
+        responseScrollView = NSScrollView()
+        responseScrollView.hasVerticalScroller = true
+        responseScrollView.hasHorizontalScroller = false
+        responseScrollView.borderType = .noBorder
+        responseScrollView.drawsBackground = false
+        responseScrollView.documentView = responseTextView
+        responseScrollView.translatesAutoresizingMaskIntoConstraints = false
+
         window.contentView = backgroundView
 
         backgroundView.addSubview(titleLabel)
         backgroundView.addSubview(statusLabel)
         backgroundView.addSubview(recordButton)
+        backgroundView.addSubview(responseScrollView)
 
         NSLayoutConstraint.activate([
             titleLabel.topAnchor.constraint(equalTo: backgroundView.topAnchor, constant: 20),
@@ -92,14 +113,21 @@ class VoiceInputWindow: NSObject {
             recordButton.centerXAnchor.constraint(equalTo: backgroundView.centerXAnchor),
             recordButton.heightAnchor.constraint(equalToConstant: 38),
             recordButton.widthAnchor.constraint(equalToConstant: 150),
-            recordButton.bottomAnchor.constraint(equalTo: backgroundView.bottomAnchor, constant: -24)
+
+            responseScrollView.topAnchor.constraint(equalTo: recordButton.bottomAnchor, constant: 18),
+            responseScrollView.leadingAnchor.constraint(equalTo: backgroundView.leadingAnchor, constant: 18),
+            responseScrollView.trailingAnchor.constraint(equalTo: backgroundView.trailingAnchor, constant: -18),
+            responseScrollView.bottomAnchor.constraint(equalTo: backgroundView.bottomAnchor, constant: -16)
         ])
+
+        renderLLMResponses()
     }
 
     func showWindow(at statusItem: NSStatusItem) {
         updateStatus("点击下方按钮开始录音")
         setRecordingState(false)
         setRecordButtonEnabled(true)
+        renderLLMResponses()
 
         // 计算窗口位置，显示在状态栏图标附近
         if let button = statusItem.button, let screen = NSScreen.main {
@@ -180,5 +208,31 @@ class VoiceInputWindow: NSObject {
     func setRecordButtonEnabled(_ enabled: Bool) {
         recordButton.isEnabled = enabled
         recordButton.alphaValue = enabled ? 1.0 : 0.6
+    }
+
+    func resetLLMResponses() {
+        llmResponseTexts.removeAll()
+        renderLLMResponses()
+    }
+
+    func displayLLMResponses(_ responses: [String]) {
+        llmResponseTexts = responses
+        renderLLMResponses()
+    }
+
+    private func renderLLMResponses() {
+        guard responseTextView != nil else { return }
+
+        if llmResponseTexts.isEmpty {
+            responseTextView.string = "暂无LLM响应。"
+        } else {
+            let formatted = llmResponseTexts.enumerated().map { index, content in
+                guard llmResponseTexts.count > 1 else { return content }
+                return "\(index + 1). \(content)"
+            }.joined(separator: "\n\n")
+            responseTextView.string = formatted
+        }
+
+        responseTextView.scrollToEndOfDocument(nil)
     }
 }
