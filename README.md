@@ -31,6 +31,10 @@ export default defineConfig({
 });
 ```
 
+## 安装VPilot软件
+
+前往 [Releases](https://github.com/Shi1xin/Qiniu-Hackathon/releases) 下载 VPilot.dmg，打开后将应用拖入 `Applications` 后即可分发或安装。
+
 ## 调试与开发
 
 ```shell
@@ -41,10 +45,8 @@ gh repo clone Shi1xin/Qiniu-Hackathon
 ./Qiniu-Hackathon/run_voicebar.sh
 ```
 
-## 安装为应用
+## 编译为dmg
 
 ```shell
 ./package_dmg.sh
 ```
-
-脚本会生成 `dist/VPilot.dmg`，将应用拖入 `Applications` 后即可分发或安装。
