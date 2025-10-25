@@ -213,17 +213,6 @@ extension VoiceMenuBarApp: VoiceInputWindowDelegate {
         voiceInputWindow.setRecordButtonEnabled(false)
         voiceRecognizer.stopRecording(dueToCancellation: false)
     }
-
-    func voiceInputWindowDidRequestCancel(_ window: VoiceInputWindow) {
-        if isRecording {
-            voiceRecognizer.stopRecording()
-        }
-
-        isRecording = false
-        voiceInputWindow.setRecordingState(false)
-        voiceInputWindow.setRecordButtonEnabled(true)
-        voiceInputWindow.hideWindow()
-    }
 }
 
 // MARK: - Main Entry Point
