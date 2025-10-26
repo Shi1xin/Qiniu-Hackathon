@@ -1,6 +1,12 @@
 # VPilot: Menubar中的语音Agent
 
-macOS menubar中的电脑操作Agent助手，支持语音与文本输入(tbd)，基于[Agent TARS CLI](https://github.com/bytedance/UI-TARS-desktop)
+macOS menubar中的电脑操作Agent助手，支持语音与文本输入，可在状态栏图标右键菜单中切换输入方式，基于[Agent TARS CLI](https://github.com/bytedance/UI-TARS-desktop)
+
+## 使用提示
+
+- 左键点击状态栏图标唤出输入窗口，默认启用语音输入
+- 右键点击状态栏图标，在“输入方式”菜单中选择“语音输入”或“文字输入”
+- 在文字输入模式下，可直接键入指令并按回车或点击“发送指令”按钮
 
 ## 快速开始
 

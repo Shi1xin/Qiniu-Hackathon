@@ -11,6 +11,7 @@ class VPilotApp: NSObject, NSApplicationDelegate {
     private let speechSynthesizer = AVSpeechSynthesizer()
     private var isSpeechEnabled = true
     private var plannerEnabled = false
+    private var inputMode: InputMode = .voice
     private var browserControlMode: BrowserControlMode = .mixed
     private enum BrowserControlMode: String, CaseIterable {
         case mixed = "mixed"
@@ -26,9 +27,22 @@ class VPilotApp: NSObject, NSApplicationDelegate {
         }
 
         var parentMenuTitle: String {
-            "浏览器控制：\(localizedName)"
+            "浏览器控制"
         }
     }
+    private lazy var inputModeMenuItem: NSMenuItem = {
+        let parent = NSMenuItem(title: inputMode.parentMenuTitle, action: nil, keyEquivalent: "")
+        let submenu = NSMenu()
+        InputMode.allCases.forEach { mode in
+            let item = NSMenuItem(title: mode.localizedName, action: #selector(selectInputMode(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = mode.rawValue
+            item.state = mode == inputMode ? .on : .off
+            submenu.addItem(item)
+        }
+        parent.submenu = submenu
+        return parent
+    }()
     private lazy var speechToggleMenuItem: NSMenuItem = {
         let item = NSMenuItem(title: "语音播报", action: #selector(toggleSpeechOutput(_:)), keyEquivalent: "")
         item.target = self
@@ -56,8 +70,9 @@ class VPilotApp: NSObject, NSApplicationDelegate {
     }()
     private lazy var statusMenu: NSMenu = {
         let menu = NSMenu()
-        menu.addItem(speechToggleMenuItem)
+        menu.addItem(inputModeMenuItem)
         menu.addItem(browserModeMenuItem)
+        menu.addItem(speechToggleMenuItem)
         menu.addItem(plannerToggleMenuItem)
         menu.addItem(NSMenuItem.separator())
         let quitItem = NSMenuItem(title: "退出", action: #selector(quitApplication), keyEquivalent: "")
@@ -80,6 +95,7 @@ class VPilotApp: NSObject, NSApplicationDelegate {
         // 初始化语音输入窗口
         voiceInputWindow = VoiceInputWindow()
         voiceInputWindow.delegate = self
+        voiceInputWindow.setInputMode(inputMode, forceStatusReset: true)
     }
 
     private func setupStatusBarItem() {
@@ -178,12 +194,20 @@ class VPilotApp: NSObject, NSApplicationDelegate {
     private func updateStatusMenuItems() {
         speechToggleMenuItem.state = isSpeechEnabled ? .on : .off
         plannerToggleMenuItem.state = plannerEnabled ? .on : .off
+        inputModeMenuItem.title = inputMode.parentMenuTitle
         browserModeMenuItem.title = browserControlMode.parentMenuTitle
         if let submenu = browserModeMenuItem.submenu {
             for item in submenu.items {
                 guard let raw = item.representedObject as? String,
                       let mode = BrowserControlMode(rawValue: raw) else { continue }
                 item.state = mode == browserControlMode ? .on : .off
+            }
+        }
+        if let submenu = inputModeMenuItem.submenu {
+            for item in submenu.items {
+                guard let raw = item.representedObject as? String,
+                      let mode = InputMode(rawValue: raw) else { continue }
+                item.state = mode == inputMode ? .on : .off
             }
         }
     }
@@ -206,6 +230,23 @@ class VPilotApp: NSObject, NSApplicationDelegate {
         guard let raw = sender.representedObject as? String,
               let mode = BrowserControlMode(rawValue: raw) else { return }
         browserControlMode = mode
+        updateStatusMenuItems()
+    }
+
+    @objc private func selectInputMode(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String,
+              let mode = InputMode(rawValue: raw) else { return }
+        guard inputMode != mode else { return }
+
+        if mode == .text, isRecording {
+            voiceRecognizer.stopRecording(dueToCancellation: true)
+        }
+
+        inputMode = mode
+        voiceInputWindow.setInputMode(mode, forceStatusReset: true)
+        if mode == .text {
+            voiceInputWindow.focusTextInput()
+        }
         updateStatusMenuItems()
     }
 }
@@ -239,6 +280,7 @@ extension VPilotApp: VoiceRecognizerDelegate {
     }
 
     func voiceRecognizerDidStartRecording(_ recognizer: VoiceRecognizer) {
+        guard inputMode == .voice else { return }
         print("开始录音")
         isRecording = true
         voiceInputWindow.setRecordingState(true)
@@ -248,6 +290,7 @@ extension VPilotApp: VoiceRecognizerDelegate {
     }
 
     func voiceRecognizerDidStopRecording(_ recognizer: VoiceRecognizer) {
+        guard inputMode == .voice else { return }
         print("停止录音")
         isRecording = false
         voiceInputWindow.setRecordingState(false)
@@ -328,7 +371,11 @@ extension VPilotApp: VoiceRecognizerDelegate {
             DispatchQueue.main.async {
                 self.voiceInputWindow.displayLLMResponses(finalResponses)
                 self.voiceInputWindow.setRecordButtonEnabled(true)
-                self.voiceInputWindow.updateStatus("执行完成，随时可以继续录音")
+                let completionStatus = self.inputMode == .voice ? "执行完成，随时可以继续录音" : "执行完成，可继续输入指令"
+                self.voiceInputWindow.updateStatus(completionStatus)
+                if self.inputMode == .text {
+                    self.voiceInputWindow.focusTextInput()
+                }
             }
 
             self.showNotification("命令执行完成", message: notificationMessage)
@@ -421,6 +468,10 @@ extension VPilotApp: VoiceRecognizerDelegate {
 // MARK: - VoiceInputWindowDelegate
 extension VPilotApp: VoiceInputWindowDelegate {
     func voiceInputWindowDidRequestStartRecording(_ window: VoiceInputWindow) {
+        guard inputMode == .voice else {
+            voiceInputWindow.setRecordButtonEnabled(true)
+            return
+        }
         guard !isRecording else {
             voiceInputWindow.setRecordButtonEnabled(true)
             return
@@ -431,6 +482,10 @@ extension VPilotApp: VoiceInputWindowDelegate {
     }
 
     func voiceInputWindowDidRequestStopRecording(_ window: VoiceInputWindow) {
+        guard inputMode == .voice else {
+            voiceInputWindow.setRecordButtonEnabled(true)
+            return
+        }
         guard isRecording else {
             voiceInputWindow.setRecordButtonEnabled(true)
             return
@@ -439,6 +494,14 @@ extension VPilotApp: VoiceInputWindowDelegate {
         voiceInputWindow.updateStatus("正在停止录音...")
         voiceInputWindow.setRecordButtonEnabled(false)
         voiceRecognizer.stopRecording(dueToCancellation: false)
+    }
+
+    func voiceInputWindow(_ window: VoiceInputWindow, didSubmitText text: String) {
+        print("接收到文本指令: \(text)")
+        voiceInputWindow.setRecordingState(false)
+        voiceInputWindow.updateStatus("正在执行指令...")
+        voiceInputWindow.resetLLMResponses()
+        executeCommand(with: text)
     }
 
     private func extractLLMFinalResponses(from output: String) -> [String] {
