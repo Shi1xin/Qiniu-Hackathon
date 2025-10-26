@@ -4,7 +4,7 @@ macOS menubar中的电脑操作Agent助手，支持语音与文本输入，可�
 
 ## 演示视频
 
-[![观看视频演示](./videos/VPilot-demo-video-cover.png)](./videos/VPilot-Demo.mp4)
+<div style="padding:56.25% 0 0 0;position:relative;"><iframe src="https://player.vimeo.com/video/1130605715?badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479" frameborder="0" allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media; web-share" referrerpolicy="strict-origin-when-cross-origin" style="position:absolute;top:0;left:0;width:100%;height:100%;" title="VPilot Demo"></iframe></div><script src="https://player.vimeo.com/api/player.js"></script>
 
 ## 使用提示
 
