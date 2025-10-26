@@ -4,7 +4,7 @@ macOS menubar中的电脑操作Agent助手，支持语音与文本输入，可�
 
 ## 演示视频
 
-[![观看视频演示](https://files.catbox.moe/6wcbvw.png)](https://vimeo.com/1130605715)
+[![观看视频演示](./images/VPilot-demo-video-cover.png)](https://vimeo.com/1130605715)
 
 ## 使用提示
 
