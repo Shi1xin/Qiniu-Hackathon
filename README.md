@@ -1,6 +1,6 @@
 # VPilot: Menubar中的语音Agent
 
-macOS menubar中的语音助手，基于[Agent TARS CLI](https://github.com/bytedance/UI-TARS-desktop)，适合语音导航任务
+macOS menubar中的电脑操作Agent助手，支持语音与文本输入(tbd)，基于[Agent TARS CLI](https://github.com/bytedance/UI-TARS-desktop)
 
 ## 快速开始
 
