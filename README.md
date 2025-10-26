@@ -4,12 +4,7 @@ macOS menubar中的电脑操作Agent助手，支持语音与文本输入，可�
 
 ## 演示视频
 
-<div align="center">
-  <video src="videos/VPilot Demo.mp4" controls width="1080" height="auto" loop>
-    您的浏览器不支持视频播放。请更新浏览器或尝试下载视频：
-    <a href="videos/VPilot Demo.mp4">下载视频</a>
-  </video>
-</div>
+[![观看视频演示](./videos/VPilot-demo-video-cover.png)](./videos/VPilot-Demo.mp4)
 
 ## 使用提示
 
