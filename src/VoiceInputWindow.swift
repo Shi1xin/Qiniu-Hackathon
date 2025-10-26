@@ -1,8 +1,30 @@
 import Cocoa
 
+private final class VoiceInputFloatingWindow: NSWindow {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { true }
+}
+
+enum InputMode: String, CaseIterable {
+    case voice
+    case text
+
+    var localizedName: String {
+        switch self {
+        case .voice: return "语音输入"
+        case .text: return "文字输入"
+        }
+    }
+
+    var parentMenuTitle: String {
+        "输入方式"
+    }
+}
+
 protocol VoiceInputWindowDelegate: AnyObject {
     func voiceInputWindowDidRequestStartRecording(_ window: VoiceInputWindow)
     func voiceInputWindowDidRequestStopRecording(_ window: VoiceInputWindow)
+    func voiceInputWindow(_ window: VoiceInputWindow, didSubmitText text: String)
 }
 
 class VoiceInputWindow: NSObject {
@@ -11,15 +33,20 @@ class VoiceInputWindow: NSObject {
     private var window: NSWindow!
     private var titleLabel: NSTextField!
     private var statusLabel: NSTextField!
+    private var inputTextField: NSTextField!
     private var recordButton: NSButton!
     private var backgroundView: NSVisualEffectView!
     private var responseScrollView: NSScrollView!
     private var responseTextView: NSTextView!
     private var outsideEventMonitor: Any?
     private var isRecording = false
+    private var inputMode: InputMode = .voice
     private var llmResponseTexts: [String] = []
     private let minWindowHeight: CGFloat = 150
     private var chromeHeight: CGFloat = 0
+    private var recordButtonTopConstraintVoice: NSLayoutConstraint!
+    private var recordButtonTopConstraintText: NSLayoutConstraint!
+    private var inputTextFieldHeightConstraint: NSLayoutConstraint!
 
     override init() {
         super.init()
@@ -28,7 +55,7 @@ class VoiceInputWindow: NSObject {
 
     private func setupWindow() {
         let windowRect = NSRect(x: 0, y: 0, width: 320, height: minWindowHeight)
-        window = NSWindow(
+        window = VoiceInputFloatingWindow(
             contentRect: windowRect,
             styleMask: [.borderless],
             backing: .buffered,
@@ -69,6 +96,21 @@ class VoiceInputWindow: NSObject {
         statusLabel.alignment = .center
         statusLabel.translatesAutoresizingMaskIntoConstraints = false
 
+    // 文本输入框
+    inputTextField = NSTextField()
+    inputTextField.placeholderString = "请输入要执行的指令"
+    inputTextField.font = NSFont.systemFont(ofSize: 14)
+    inputTextField.isBordered = true
+    inputTextField.isBezeled = true
+    inputTextField.focusRingType = .default
+    inputTextField.usesSingleLineMode = true
+    inputTextField.maximumNumberOfLines = 1
+    inputTextField.lineBreakMode = .byTruncatingTail
+    inputTextField.translatesAutoresizingMaskIntoConstraints = false
+    inputTextField.target = self
+    inputTextField.action = #selector(submitTextFromField)
+    inputTextField.isHidden = true
+
         // 录音按钮
         recordButton = NSButton(title: "开始录音", target: self, action: #selector(recordButtonClicked))
         recordButton.bezelStyle = .regularSquare
@@ -105,6 +147,7 @@ class VoiceInputWindow: NSObject {
 
         backgroundView.addSubview(titleLabel)
         backgroundView.addSubview(statusLabel)
+    backgroundView.addSubview(inputTextField)
         backgroundView.addSubview(recordButton)
         backgroundView.addSubview(responseScrollView)
 
@@ -117,7 +160,10 @@ class VoiceInputWindow: NSObject {
             statusLabel.leadingAnchor.constraint(equalTo: backgroundView.leadingAnchor, constant: 20),
             statusLabel.trailingAnchor.constraint(equalTo: backgroundView.trailingAnchor, constant: -20),
 
-            recordButton.topAnchor.constraint(equalTo: statusLabel.bottomAnchor, constant: 22),
+            inputTextField.topAnchor.constraint(equalTo: statusLabel.bottomAnchor, constant: 18),
+            inputTextField.leadingAnchor.constraint(equalTo: backgroundView.leadingAnchor, constant: 18),
+            inputTextField.trailingAnchor.constraint(equalTo: backgroundView.trailingAnchor, constant: -18),
+
             recordButton.centerXAnchor.constraint(equalTo: backgroundView.centerXAnchor),
             recordButton.heightAnchor.constraint(equalToConstant: 38),
             recordButton.widthAnchor.constraint(equalToConstant: 150),
@@ -128,10 +174,103 @@ class VoiceInputWindow: NSObject {
             responseScrollView.bottomAnchor.constraint(equalTo: backgroundView.bottomAnchor, constant: -16)
         ])
 
+        inputTextFieldHeightConstraint = inputTextField.heightAnchor.constraint(equalToConstant: 0)
+        inputTextFieldHeightConstraint.isActive = true
+        recordButtonTopConstraintVoice = recordButton.topAnchor.constraint(equalTo: statusLabel.bottomAnchor, constant: 22)
+        recordButtonTopConstraintText = recordButton.topAnchor.constraint(equalTo: inputTextField.bottomAnchor, constant: 18)
+        recordButtonTopConstraintVoice.isActive = true
+
+        updateButtonAppearance()
+
+    }
+
+    func setInputMode(_ mode: InputMode, forceStatusReset: Bool = false) {
+        let previousMode = inputMode
+        inputMode = mode
+        let shouldResetStatus = forceStatusReset || previousMode != mode
+
+        switch inputMode {
+        case .voice:
+            inputTextField.isHidden = true
+            inputTextFieldHeightConstraint.constant = 0
+            recordButtonTopConstraintText.isActive = false
+            recordButtonTopConstraintVoice.isActive = true
+            isRecording = false
+            if shouldResetStatus {
+                updateStatus("点击下方按钮开始录音")
+            }
+        case .text:
+            inputTextField.isHidden = false
+            inputTextFieldHeightConstraint.constant = 32
+            recordButtonTopConstraintVoice.isActive = false
+            recordButtonTopConstraintText.isActive = true
+            isRecording = false
+            if shouldResetStatus {
+                updateStatus("输入指令后按回车或点击下方按钮")
+            }
+        }
+
+        updateButtonAppearance()
+        if shouldResetStatus {
+            setRecordButtonEnabled(true)
+        }
+
+        backgroundView.layoutSubtreeIfNeeded()
+        chromeHeight = 0
+        resetWindowHeightIfNeeded()
+    }
+
+    func focusTextInput() {
+        guard inputMode == .text else { return }
+        window.makeFirstResponder(inputTextField)
+    }
+
+    private func updateButtonAppearance() {
+        let accent = NSColor.controlAccentColor
+        switch inputMode {
+        case .voice:
+            recordButton.title = isRecording ? "停止录音" : "开始录音"
+            let tint = isRecording ? NSColor.systemRed : accent
+            recordButton.contentTintColor = tint
+            recordButton.layer?.backgroundColor = tint.withAlphaComponent(0.18).cgColor
+        case .text:
+            recordButton.title = "发送指令"
+            recordButton.contentTintColor = accent
+            recordButton.layer?.backgroundColor = accent.withAlphaComponent(0.18).cgColor
+        }
+    }
+
+    private func applyDefaultStatusForCurrentMode() {
+        switch inputMode {
+        case .voice:
+            updateStatus("点击下方按钮开始录音")
+        case .text:
+            updateStatus("输入指令后按回车或点击下方按钮")
+        }
+    }
+
+    @objc private func submitTextFromField() {
+        guard inputMode == .text else { return }
+        guard recordButton.isEnabled else { return }
+        setRecordButtonEnabled(false)
+        submitTextInput()
+    }
+
+    private func submitTextInput() {
+        let trimmed = inputTextField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            updateStatus("请输入要执行的指令")
+            setRecordButtonEnabled(true)
+            focusTextInput()
+            return
+        }
+
+        delegate?.voiceInputWindow(self, didSubmitText: trimmed)
+        inputTextField.stringValue = ""
     }
 
     func showWindow(at statusItem: NSStatusItem) {
-        updateStatus("点击下方按钮开始录音")
+        applyDefaultStatusForCurrentMode()
         setRecordingState(false)
         setRecordButtonEnabled(true)
         renderLLMResponses()
@@ -160,8 +299,10 @@ class VoiceInputWindow: NSObject {
             window.setFrameOrigin(NSPoint(x: x, y: y))
         }
 
-        window.makeKeyAndOrderFront(nil)
+    window.makeKeyAndOrderFront(nil)
+    NSApp.activate(ignoringOtherApps: true)
         window.alphaValue = 1.0
+        focusTextInput()
 
         // 添加全局点击监听器，点击窗口外部时关闭窗口
         if let monitor = outsideEventMonitor {
@@ -191,25 +332,31 @@ class VoiceInputWindow: NSObject {
 
     func updateStatus(_ status: String) {
         statusLabel.stringValue = status
-        let isActiveRecording = status.contains("正在录音")
+        let isActiveRecording = inputMode == .voice && status.contains("正在录音")
         statusLabel.textColor = isActiveRecording ? NSColor.systemRed : NSColor.secondaryLabelColor
     }
 
     @objc private func recordButtonClicked() {
-        recordButton.isEnabled = false
-        if isRecording {
-            delegate?.voiceInputWindowDidRequestStopRecording(self)
-        } else {
-            delegate?.voiceInputWindowDidRequestStartRecording(self)
+        setRecordButtonEnabled(false)
+        switch inputMode {
+        case .voice:
+            if isRecording {
+                delegate?.voiceInputWindowDidRequestStopRecording(self)
+            } else {
+                delegate?.voiceInputWindowDidRequestStartRecording(self)
+            }
+        case .text:
+            submitTextInput()
         }
     }
 
     func setRecordingState(_ recording: Bool) {
-        isRecording = recording
-        recordButton.title = recording ? "停止录音" : "开始录音"
-        let accent = NSColor.controlAccentColor
-        recordButton.contentTintColor = recording ? NSColor.systemRed : accent
-        recordButton.layer?.backgroundColor = recording ? NSColor.systemRed.withAlphaComponent(0.18).cgColor : accent.withAlphaComponent(0.18).cgColor
+        if inputMode == .voice {
+            isRecording = recording
+        } else {
+            isRecording = false
+        }
+        updateButtonAppearance()
     }
 
     func setRecordButtonEnabled(_ enabled: Bool) {
