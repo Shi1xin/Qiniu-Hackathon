@@ -49,7 +49,7 @@ class VPilotApp: NSObject, NSApplicationDelegate {
         return parent
     }()
     private lazy var plannerToggleMenuItem: NSMenuItem = {
-        let item = NSMenuItem(title: "启用任务规划", action: #selector(togglePlanner(_:)), keyEquivalent: "")
+        let item = NSMenuItem(title: "任务规划", action: #selector(togglePlanner(_:)), keyEquivalent: "")
         item.target = self
         item.state = .off
         return item
