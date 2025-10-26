@@ -2,6 +2,15 @@
 
 macOS menubar中的电脑操作Agent助手，支持语音与文本输入，可在状态栏图标右键菜单中切换输入方式及语音服务（macOS 原生 / ElevenLabs），基于[Agent TARS CLI](https://github.com/bytedance/UI-TARS-desktop)
 
+## 演示视频
+
+<div align="center">
+  <video src="videos/VPilot Demo.mp4" controls width="1080" height="auto" loop>
+    您的浏览器不支持视频播放。请更新浏览器或尝试下载视频：
+    <a href="videos/VPilot Demo.mp4">下载视频</a>
+  </video>
+</div>
+
 ## 使用提示
 
 - 左键点击状态栏图标唤出输入窗口，默认启用语音输入
@@ -10,6 +19,11 @@ macOS menubar中的电脑操作Agent助手，支持语音与文本输入，可�
 - 首次选择 ElevenLabs 会弹窗输入 API Key，可在同一菜单中通过“配置 ElevenLabs API Key...”随时更新
 - 选择 ElevenLabs 时，语音识别与语音播报都会改为调用 ElevenLabs 的 Scribe v1 与 Eleven v3 模型
 - 在文字输入模式下，可直接键入指令并按回车或点击“发送指令”按钮
+
+## 分工
+
+- [施一信](https://github.com/Shi1xin)：原型开发，User Flow设计，技术选型
+- [汪瑾](https://github.com/JeanMuyx)：功能开发（文字输入、语音选项），文档撰写
 
 ## 快速开始
 
