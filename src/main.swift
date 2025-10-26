@@ -12,7 +12,10 @@ class VPilotApp: NSObject, NSApplicationDelegate {
     private var isSpeechEnabled = true
     private var plannerEnabled = false
     private var inputMode: InputMode = .voice
-    private var browserControlMode: BrowserControlMode = .mixed
+    private var speechService: SpeechServiceProvider = .appleNative
+    private var elevenLabsAPIKey: String?
+    private var elevenLabsAudioPlayer: AVAudioPlayer?
+    private var browserControlMode: BrowserControlMode = .guiAgentOnly
     private enum BrowserControlMode: String, CaseIterable {
         case mixed = "mixed"
         case browserUseOnly = "browser-use-only"
@@ -27,9 +30,26 @@ class VPilotApp: NSObject, NSApplicationDelegate {
         }
 
         var parentMenuTitle: String {
-            "浏览器控制"
+            "浏览器控制：\(localizedName)"
         }
     }
+    private lazy var speechServiceMenuItem: NSMenuItem = {
+        let parent = NSMenuItem(title: speechService.parentMenuTitle, action: nil, keyEquivalent: "")
+        let submenu = NSMenu()
+        SpeechServiceProvider.allCases.forEach { provider in
+            let item = NSMenuItem(title: provider.localizedName, action: #selector(selectSpeechService(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = provider.rawValue
+            item.state = provider == speechService ? .on : .off
+            submenu.addItem(item)
+        }
+        submenu.addItem(NSMenuItem.separator())
+        let configureItem = NSMenuItem(title: "配置 ElevenLabs API Key...", action: #selector(promptForElevenLabsAPIKeyManually), keyEquivalent: "")
+        configureItem.target = self
+        submenu.addItem(configureItem)
+        parent.submenu = submenu
+        return parent
+    }()
     private lazy var inputModeMenuItem: NSMenuItem = {
         let parent = NSMenuItem(title: inputMode.parentMenuTitle, action: nil, keyEquivalent: "")
         let submenu = NSMenu()
@@ -70,6 +90,7 @@ class VPilotApp: NSObject, NSApplicationDelegate {
     }()
     private lazy var statusMenu: NSMenu = {
         let menu = NSMenu()
+        menu.addItem(speechServiceMenuItem)
         menu.addItem(inputModeMenuItem)
         menu.addItem(browserModeMenuItem)
         menu.addItem(speechToggleMenuItem)
@@ -96,6 +117,9 @@ class VPilotApp: NSObject, NSApplicationDelegate {
         voiceInputWindow = VoiceInputWindow()
         voiceInputWindow.delegate = self
         voiceInputWindow.setInputMode(inputMode, forceStatusReset: true)
+
+        elevenLabsAPIKey = KeychainHelper.load(KeychainKeys.elevenLabsAPIKey)
+        voiceRecognizer.updateSpeechService(provider: speechService, apiKey: elevenLabsAPIKey)
     }
 
     private func setupStatusBarItem() {
@@ -194,8 +218,16 @@ class VPilotApp: NSObject, NSApplicationDelegate {
     private func updateStatusMenuItems() {
         speechToggleMenuItem.state = isSpeechEnabled ? .on : .off
         plannerToggleMenuItem.state = plannerEnabled ? .on : .off
+        speechServiceMenuItem.title = speechService.parentMenuTitle
         inputModeMenuItem.title = inputMode.parentMenuTitle
         browserModeMenuItem.title = browserControlMode.parentMenuTitle
+        if let submenu = speechServiceMenuItem.submenu {
+            for item in submenu.items {
+                guard let raw = item.representedObject as? String,
+                      let provider = SpeechServiceProvider(rawValue: raw) else { continue }
+                item.state = provider == speechService ? .on : .off
+            }
+        }
         if let submenu = browserModeMenuItem.submenu {
             for item in submenu.items {
                 guard let raw = item.representedObject as? String,
@@ -216,8 +248,11 @@ class VPilotApp: NSObject, NSApplicationDelegate {
         isSpeechEnabled.toggle()
         updateStatusMenuItems()
 
-        if !isSpeechEnabled, speechSynthesizer.isSpeaking {
-            speechSynthesizer.stopSpeaking(at: .immediate)
+        if !isSpeechEnabled {
+            if speechSynthesizer.isSpeaking {
+                speechSynthesizer.stopSpeaking(at: .immediate)
+            }
+            stopElevenLabsAudioPlayback()
         }
     }
 
@@ -248,6 +283,99 @@ class VPilotApp: NSObject, NSApplicationDelegate {
             voiceInputWindow.focusTextInput()
         }
         updateStatusMenuItems()
+    }
+
+    @objc private func selectSpeechService(_ sender: NSMenuItem) {
+        guard let raw = sender.representedObject as? String,
+              let provider = SpeechServiceProvider(rawValue: raw) else { return }
+        guard speechService != provider else { return }
+
+        if provider == .elevenLabs {
+            guard ensureElevenLabsAPIKey() else {
+                updateStatusMenuItems()
+                return
+            }
+        }
+
+        if isRecording {
+            voiceRecognizer.stopRecording(dueToCancellation: true)
+        }
+
+        speechService = provider
+        voiceRecognizer.updateSpeechService(provider: provider, apiKey: elevenLabsAPIKey)
+
+        switch provider {
+        case .appleNative:
+            stopElevenLabsAudioPlayback()
+        case .elevenLabs:
+            if speechSynthesizer.isSpeaking {
+                speechSynthesizer.stopSpeaking(at: .immediate)
+            }
+        }
+
+        updateStatusMenuItems()
+    }
+
+    @objc private func promptForElevenLabsAPIKeyManually() {
+        guard let key = promptForElevenLabsAPIKey() else { return }
+        if KeychainHelper.save(key, forKey: KeychainKeys.elevenLabsAPIKey) {
+            elevenLabsAPIKey = key
+            voiceRecognizer.updateSpeechService(provider: speechService, apiKey: elevenLabsAPIKey)
+        }
+        updateStatusMenuItems()
+    }
+
+    private func ensureElevenLabsAPIKey() -> Bool {
+        if let key = elevenLabsAPIKey, !key.isEmpty {
+            return true
+        }
+
+        guard let key = promptForElevenLabsAPIKey() else {
+            return false
+        }
+
+        guard KeychainHelper.save(key, forKey: KeychainKeys.elevenLabsAPIKey) else {
+            showErrorMessage("保存 ElevenLabs API Key 失败，请重试")
+            return false
+        }
+
+        elevenLabsAPIKey = key
+        voiceRecognizer.updateSpeechService(provider: speechService, apiKey: elevenLabsAPIKey)
+        return true
+    }
+
+    private func promptForElevenLabsAPIKey() -> String? {
+        let alert = NSAlert()
+        alert.messageText = "配置 ElevenLabs API Key"
+        alert.informativeText = "请输入 ElevenLabs API Key 以启用 ElevenLabs 语音与识别服务。"
+        alert.alertStyle = .informational
+
+    let inputField = PasteEnabledSecureTextField(frame: NSRect(x: 0, y: 0, width: 260, height: 24))
+        inputField.placeholderString = "ElevenLabs API Key"
+        alert.accessoryView = inputField
+
+        alert.addButton(withTitle: "确定")
+        alert.addButton(withTitle: "取消")
+
+        let response = alert.runModal()
+        guard response == .alertFirstButtonReturn else { return nil }
+
+        let trimmed = inputField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func stopElevenLabsAudioPlayback() {
+        if !Thread.isMainThread {
+            DispatchQueue.main.async { [weak self] in
+                self?.stopElevenLabsAudioPlayback()
+            }
+            return
+        }
+
+        if let player = elevenLabsAudioPlayer, player.isPlaying {
+            player.stop()
+        }
+        elevenLabsAudioPlayer = nil
     }
 }
 
@@ -402,7 +530,6 @@ extension VPilotApp: VoiceRecognizerDelegate {
         let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
-        // 标准化语音输出，避免朗读多余的空白字符。
         let normalizedTokens = trimmed
             .components(separatedBy: .whitespacesAndNewlines)
             .filter { !$0.isEmpty }
@@ -415,18 +542,99 @@ extension VPilotApp: VoiceRecognizerDelegate {
             normalizedMessage = String(prefix) + "，更多内容请查看通知。"
         }
 
+        switch speechService {
+        case .appleNative:
+            speakWithSystemVoice(normalizedMessage)
+        case .elevenLabs:
+            speakWithElevenLabs(normalizedMessage)
+        }
+    }
+
+    private func speakWithSystemVoice(_ text: String) {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
+
+            self.stopElevenLabsAudioPlayback()
 
             if self.speechSynthesizer.isSpeaking {
                 self.speechSynthesizer.stopSpeaking(at: .immediate)
             }
 
-            let utterance: AVSpeechUtterance = AVSpeechUtterance(string: normalizedMessage)
+            let utterance = AVSpeechUtterance(string: text)
             utterance.voice = AVSpeechSynthesisVoice(language: "zh-CN")
             utterance.rate = AVSpeechUtteranceDefaultSpeechRate + 0.1
             self.speechSynthesizer.speak(utterance)
         }
+    }
+
+    private func speakWithElevenLabs(_ text: String) {
+        guard let apiKey = elevenLabsAPIKey, !apiKey.isEmpty else {
+            DispatchQueue.main.async { [weak self] in
+                self?.showErrorMessage("未配置 ElevenLabs API Key")
+            }
+            return
+        }
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            if self.speechSynthesizer.isSpeaking {
+                self.speechSynthesizer.stopSpeaking(at: .immediate)
+            }
+            self.stopElevenLabsAudioPlayback()
+        }
+
+        var request = URLRequest(url: ElevenLabsConstants.textToSpeechEndpoint(forVoice: ElevenLabsConstants.defaultVoiceId))
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("audio/mpeg", forHTTPHeaderField: "Accept")
+        request.setValue(apiKey, forHTTPHeaderField: "xi-api-key")
+
+        let payload: [String: Any] = [
+            "text": text,
+            "model_id": ElevenLabsConstants.textToSpeechModelId,
+            "voice_settings": [
+                "stability": 0.3,
+                "similarity_boost": 0.7,
+                "style": 0.0,
+                "use_speaker_boost": true,
+                "speed": 1.0
+            ]
+        ]
+
+        guard let body = try? JSONSerialization.data(withJSONObject: payload, options: []) else {
+            print("构建 ElevenLabs TTS 请求失败：无法编码 JSON")
+            return
+        }
+
+        request.httpBody = body
+
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            guard let self else { return }
+
+            if let error {
+                print("ElevenLabs TTS 请求失败: \(error)")
+                return
+            }
+
+            guard let httpResponse = response as? HTTPURLResponse,
+                  (200..<300).contains(httpResponse.statusCode),
+                  let data else {
+                let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+                print("ElevenLabs TTS 返回异常，状态码: \(status)")
+                return
+            }
+
+            DispatchQueue.main.async {
+                do {
+                    self.stopElevenLabsAudioPlayback()
+                    self.elevenLabsAudioPlayer = try AVAudioPlayer(data: data)
+                    self.elevenLabsAudioPlayer?.prepareToPlay()
+                    self.elevenLabsAudioPlayer?.play()
+                } catch {
+                    print("播放 ElevenLabs 音频失败: \(error)")
+                }
+            }
+        }.resume()
     }
 
     private func showNotification(_ title: String, message: String) {
@@ -476,6 +684,16 @@ extension VPilotApp: VoiceInputWindowDelegate {
             voiceInputWindow.setRecordButtonEnabled(true)
             return
         }
+
+        if speechService == .elevenLabs {
+            guard ensureElevenLabsAPIKey() else {
+                voiceInputWindow.setRecordButtonEnabled(true)
+                voiceInputWindow.updateStatus("需要先配置 ElevenLabs API Key")
+                return
+            }
+        }
+
+        voiceRecognizer.updateSpeechService(provider: speechService, apiKey: elevenLabsAPIKey)
 
         voiceInputWindow.updateStatus("正在准备录音...")
         voiceRecognizer.requestPermissionsAndStartRecording()
